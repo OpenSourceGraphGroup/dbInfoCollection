@@ -12,7 +12,7 @@ import java.util.Map;
 public class LoadingInfoCollect {
     public static void main(String[] args) {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        String sql = String.format("explain %s", Common.getSql("sql/4.sql"));
+        String sql = String.format("explain %s", Common.getSql("sql/8.sql"));
         ResultSet resultSet = Common.query(connection, sql);
         try {
             ResultSetMetaData metaData = resultSet.getMetaData();
@@ -23,8 +23,11 @@ public class LoadingInfoCollect {
                 for (int i = 1; i <= columnCount; i++) {
                     rowData.put(metaData.getColumnName(i), resultSet.getObject(i));
                 }
+                if (queryPlan.isEmpty()) {
+                    System.out.println(rowData.keySet());
+                }
                 queryPlan.add(rowData);
-                System.out.println(rowData);
+                System.out.println(rowData.values());
             }
             connection.close();
         } catch (SQLException e) {
