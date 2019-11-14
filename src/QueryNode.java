@@ -14,4 +14,8 @@ class QueryNode {
     QueryNode leftChild;
     QueryNode rightChild;
     String condition;
+
+    QueryNode(NodeType nodeType) {
+        this.nodeType = nodeType;
+    }
 }
