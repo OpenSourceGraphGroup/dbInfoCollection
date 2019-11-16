@@ -36,9 +36,6 @@ public class QueryTreeGenerator {
         }
     }
 
-    private static class Condition extends HashMap<String, String> {
-    }
-
     /**
      * Generate query tree according to sql
      *
@@ -50,13 +47,12 @@ public class QueryTreeGenerator {
     static QueryNode generate(Connection connection, String sql) throws JSQLParserException {
         QueryPlan queryPlan = queryPlanGenerate(connection, sql);
         System.out.println(queryPlan);
-        Condition selectCondition = getSelectCondition(sql);
-        Condition leafCondition = getLeafCondition(sql);
+        Map<String, String> selectCondition = getSelectCondition(sql);
+        Map<String, String> leafCondition = getLeafCondition(sql);
 
         Map<String, String> plan = queryPlan.get(0);
 
-        QueryNode start = new QueryNode(NodeType.LEAF_NODE);
-        QueryNode queryNode = start;
+        QueryNode queryNode = new QueryNode(NodeType.LEAF_NODE);
         String tableName = leafCondition.getOrDefault(plan.get("table"), plan.get("table"));
         queryNode.condition = tableName;
         if (plan.get("Extra").contains("Using where")) {
@@ -85,7 +81,7 @@ public class QueryTreeGenerator {
                 queryNode = queryNode.parent;
             }
         }
-        return start;
+        return queryNode;
     }
 
     /**
@@ -144,8 +140,8 @@ public class QueryTreeGenerator {
      * @return
      * @throws JSQLParserException
      */
-    static Condition getLeafCondition(String sql) throws JSQLParserException {
-        Condition condition = new Condition();
+    static Map<String, String> getLeafCondition(String sql) throws JSQLParserException {
+        Map<String, String> condition = new HashMap<>();
         PlainSelect selectBody = (PlainSelect) ((Select) CCJSqlParserUtil.parse(sql)).getSelectBody();
         while (selectBody != null) {
             List<Join> tables = selectBody.getJoins();
@@ -171,8 +167,8 @@ public class QueryTreeGenerator {
      * @param sql
      * @return
      */
-    private static Condition getSelectCondition(String sql) throws JSQLParserException {
-        Condition results = new Condition();
+    private static Map<String, String> getSelectCondition(String sql) throws JSQLParserException {
+        Map<String, String> results = new HashMap<>();
         PlainSelect selectBody = (PlainSelect) ((Select) CCJSqlParserUtil.parse(sql)).getSelectBody();
         while (selectBody != null) {
             Expression where = selectBody.getWhere();
@@ -191,7 +187,7 @@ public class QueryTreeGenerator {
      * @param expression
      * @param results
      */
-    private static void parseExpression(Expression expression, Condition results) {
+    private static void parseExpression(Expression expression, Map<String, String> results) {
         if (expression == null) return;
         if (expression.getClass().equals(AndExpression.class)
                 || expression.getClass().equals(OrExpression.class)) {
@@ -240,15 +236,8 @@ public class QueryTreeGenerator {
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        QueryNode start = generate(connection, Common.getSql("sql/3.sql"));
-        while (start != null) {
-            System.out.print(start.nodeType + " " + start.condition);
-            if (start.rightChild != null) {
-                System.out.print("\t|\t" + start.rightChild.nodeType + " " + start.rightChild.condition);
-            }
-            System.out.println();
-            start = start.parent;
-        }
+        QueryNode queryNode = generate(connection, Common.getSql("sql/3.sql"));
+        queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
         connection.close();
     }
 }

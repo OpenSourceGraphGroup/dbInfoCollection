@@ -8,6 +8,10 @@ enum NodeType {
     JOIN_NODE, SELECT_NODE, LEAF_NODE
 }
 
+interface QueryNodeProcessor {
+    void process(QueryNode queryNode);
+}
+
 class QueryNode {
     int count;
     NodeType nodeType;
@@ -18,5 +22,13 @@ class QueryNode {
 
     QueryNode(NodeType nodeType) {
         this.nodeType = nodeType;
+    }
+
+    void postOrder(QueryNodeProcessor processor) {
+        if (leftChild != null)
+            leftChild.postOrder(processor);
+        if (rightChild != null)
+            rightChild.postOrder(processor);
+        processor.process(this);
     }
 }
