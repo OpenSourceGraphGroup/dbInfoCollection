@@ -20,8 +20,11 @@ class QueryNode {
     QueryNode rightChild;
     String condition;
 
-    QueryNode(NodeType nodeType) {
+    QueryNode(NodeType nodeType, QueryNode leftChild, QueryNode rightChild, String condition) {
         this.nodeType = nodeType;
+        this.leftChild = leftChild;
+        this.rightChild = rightChild;
+        this.condition = condition;
     }
 
     void postOrder(QueryNodeProcessor processor) {

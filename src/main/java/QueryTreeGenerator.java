@@ -2,8 +2,7 @@ import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.expression.*;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
-import net.sf.jsqlparser.expression.operators.relational.Between;
-import net.sf.jsqlparser.expression.operators.relational.InExpression;
+import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
@@ -36,6 +35,61 @@ public class QueryTreeGenerator {
         }
     }
 
+    enum Operator {
+        EQU(" = "), NEQ(" <> "), LSS(" < "), LEQ(" <= "), GTR(" > "), GEQ(" >= "), BET(" between "), LIKE(" like "), NOTLIKE(" not like "), IN(" in "), NOTIN(" not in ");
+        String value;
+
+        Operator(String value) {
+            this.value = value;
+        }
+
+        public String toString() {
+            return value;
+        }
+    }
+
+    private static Map<Class, Operator> operatorMap = new HashMap<Class, Operator>() {
+        {
+            put(EqualsTo.class, Operator.EQU);
+            put(NotEqualsTo.class, Operator.NEQ);
+            put(GreaterThan.class, Operator.GTR);
+            put(GreaterThanEquals.class, Operator.GEQ);
+            put(MinorThan.class, Operator.LSS);
+            put(MinorThanEquals.class, Operator.LEQ);
+        }
+    };
+
+    private static class Where {
+        Operator operator;
+        String left; // left is always a column, right may be a column or value
+        String right;
+        String table;
+        boolean and;
+        String id;
+
+        Where(Operator operator, String left, String right, String table, String id, boolean and) {
+            this.operator = operator;
+            this.left = left;
+            this.right = right;
+            this.table = table;
+            this.id = id;
+            this.and = and;
+        }
+
+        static String getCondition(List<Where> whereStatements, String id, String table) {
+            StringBuilder result = new StringBuilder();
+            for (Where statement : whereStatements) {
+                if (statement.id.equals(id) && statement.table.equals(table)) {
+                    if (result.length() != 0) {
+                        result.append(statement.and ? " and " : " or ");
+                    }
+                    result.append(statement.left).append(statement.operator).append(statement.right);
+                }
+            }
+            return result.toString();
+        }
+    }
+
     /**
      * Generate query tree according to sql
      *
@@ -44,40 +98,33 @@ public class QueryTreeGenerator {
      * @return
      * @throws JSQLParserException
      */
-    static QueryNode generate(Connection connection, String sql) throws JSQLParserException {
+    public static QueryNode generate(Connection connection, String sql) throws JSQLParserException {
         QueryPlan queryPlan = queryPlanGenerate(connection, sql);
         System.out.println(queryPlan);
-        Map<String, String> selectCondition = getSelectCondition(sql);
-        Map<String, String> leafCondition = getLeafCondition(sql);
+        Map<String, String> tableAlias = getTableAlias(sql);
+        List<Where> wheres = getWheres(sql, Integer.valueOf(queryPlan.get(0).get("id")));
+        return generate(connection, queryPlan, tableAlias, wheres);
+    }
 
-        Map<String, String> plan = queryPlan.get(0);
-
-        QueryNode queryNode = new QueryNode(NodeType.LEAF_NODE);
-        String tableName = leafCondition.getOrDefault(plan.get("table"), plan.get("table"));
-        queryNode.condition = tableName;
-        if (plan.get("Extra").contains("Using where")) {
-            queryNode.parent = new QueryNode(NodeType.SELECT_NODE);
-            queryNode.parent.leftChild = queryNode;
-            queryNode.parent.condition = selectCondition.get(tableName);
-            queryNode = queryNode.parent;
-        }
-
-        for (int index = 1; index < queryPlan.size(); index++) {
-            plan = queryPlan.get(index);
-            tableName = leafCondition.getOrDefault(plan.get("table"), plan.get("table"));
-            String[] joinKey = plan.get("ref").split("\\.");
-            String leftJoinKey = joinKey[joinKey.length - 1];
-            queryNode.parent = new QueryNode(NodeType.JOIN_NODE);
-            queryNode.parent.condition = leftJoinKey + " = "
-                    + getJoinKey(connection, plan.get("key"), tableName);
-            queryNode.parent.leftChild = queryNode;
-            queryNode.parent.rightChild = new QueryNode(NodeType.LEAF_NODE);
-            queryNode.parent.rightChild.condition = tableName;
-            queryNode = queryNode.parent;
-            if (plan.get("Extra") != null && plan.get("Extra").contains("Using where")) {
-                queryNode.parent = new QueryNode(NodeType.SELECT_NODE);
-                queryNode.parent.leftChild = queryNode;
-                queryNode.parent.condition = selectCondition.get(tableName);
+    private static QueryNode generate(Connection connection, QueryPlan queryPlan, Map<String, String> tableAlias, List<Where> wheres) {
+        QueryNode queryNode = null;
+        for (int index = 0; index < queryPlan.size(); index++) {
+            Map<String, String> plan = queryPlan.get(index);
+            String tableName = tableAlias.getOrDefault(plan.get("table"), plan.get("table"));
+            QueryNode leafNode = new QueryNode(NodeType.LEAF_NODE, null, null, tableName);
+            if (index != 0) {
+                // Generate JOIN_NODE
+                String[] joinKey = plan.get("ref").split("\\.");
+                String leftJoinKey = joinKey[joinKey.length - 1];
+                queryNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, leafNode, leftJoinKey + " = " + getJoinKey(connection, plan.get("key"), tableName));
+                queryNode = queryNode.parent;
+            } else {
+                //Generate LEAF_NODE
+                queryNode = leafNode;
+            }
+            // Generate SELECT_NODE
+            if (plan.get("Extra").contains("Using where")) {
+                queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, Where.getCondition(wheres, plan.get("id"), tableName));
                 queryNode = queryNode.parent;
             }
         }
@@ -140,7 +187,7 @@ public class QueryTreeGenerator {
      * @return
      * @throws JSQLParserException
      */
-    static Map<String, String> getLeafCondition(String sql) throws JSQLParserException {
+    private static Map<String, String> getTableAlias(String sql) throws JSQLParserException {
         Map<String, String> condition = new HashMap<>();
         PlainSelect selectBody = (PlainSelect) ((Select) CCJSqlParserUtil.parse(sql)).getSelectBody();
         while (selectBody != null) {
@@ -153,8 +200,13 @@ public class QueryTreeGenerator {
                     }
                 }
             }
-            if (selectBody.getFromItem().getClass().equals(Table.class)) break;
-            else {
+            if (selectBody.getFromItem().getClass().equals(Table.class)) {
+                Table table = (Table) selectBody.getFromItem();
+                if (table.getAlias() != null) {
+                    condition.put(table.getAlias().getName(), table.getName());
+                }
+                break;
+            } else {
                 selectBody = (PlainSelect) ((SubSelect) selectBody.getFromItem()).getSelectBody();
             }
         }
@@ -167,16 +219,18 @@ public class QueryTreeGenerator {
      * @param sql
      * @return
      */
-    private static Map<String, String> getSelectCondition(String sql) throws JSQLParserException {
-        Map<String, String> results = new HashMap<>();
+    private static List<Where> getWheres(String sql, Integer SubQueryDepth) throws JSQLParserException {
+        List<Where> results = new ArrayList<>();
         PlainSelect selectBody = (PlainSelect) ((Select) CCJSqlParserUtil.parse(sql)).getSelectBody();
+        int id = 0;
         while (selectBody != null) {
             Expression where = selectBody.getWhere();
-            parseExpression(where, results);
+            parseExpression(where, results, true, SubQueryDepth - id);
             if (selectBody.getFromItem().getClass().equals(Table.class)) break;
             else {
                 selectBody = (PlainSelect) ((SubSelect) selectBody.getFromItem()).getSelectBody();
             }
+            id++;
         }
         return results;
     }
@@ -187,27 +241,52 @@ public class QueryTreeGenerator {
      * @param expression
      * @param results
      */
-    private static void parseExpression(Expression expression, Map<String, String> results) {
+    private static void parseExpression(Expression expression, List<Where> results, boolean and, int id) {
         if (expression == null) return;
-        if (expression.getClass().equals(AndExpression.class)
-                || expression.getClass().equals(OrExpression.class)) {
-            parseExpression(((BinaryExpression) expression).getLeftExpression(), results);
-            parseExpression(((BinaryExpression) expression).getRightExpression(), results);
-        } else if (expression.getClass().equals(Parenthesis.class)) {
+        Class expressionClass = expression.getClass();
+        if (expressionClass.equals(AndExpression.class)) {
+            parseExpression(((BinaryExpression) expression).getLeftExpression(), results, true, id);
+            parseExpression(((BinaryExpression) expression).getRightExpression(), results, true, id);
+        } else if (expressionClass.equals(OrExpression.class)) {
+            parseExpression(((BinaryExpression) expression).getLeftExpression(), results, true, id);
+            parseExpression(((BinaryExpression) expression).getRightExpression(), results, false, id);
+        } else if (expressionClass.equals(Parenthesis.class)) {
 
         } else {
-            String columnName = null;
-            if (BinaryExpression.class.isAssignableFrom(expression.getClass())) {
-                if (!((BinaryExpression) expression).getRightExpression().getClass().equals(Column.class))
-                    columnName = ((Column) ((BinaryExpression) expression).getLeftExpression()).getColumnName();
-            } else if (expression.getClass().equals(Between.class)) {
-                columnName = ((Column) ((Between) expression).getLeftExpression()).getColumnName();
-            } else {
-                columnName = ((Column) ((InExpression) expression).getLeftExpression()).getColumnName();
+            String left = null;
+            String right = null;
+            Operator operator = null;
+            if (ComparisonOperator.class.isAssignableFrom(expressionClass)) {
+                Expression leftExpression = ((BinaryExpression) expression).getLeftExpression();
+                Expression rightExpression = ((BinaryExpression) expression).getRightExpression();
+                if (!leftExpression.getClass().equals(Column.class)) {
+                    Expression tmp = leftExpression;
+                    leftExpression = rightExpression;
+                    rightExpression = tmp;
+                }
+                if (!rightExpression.getClass().equals(Column.class)) {
+                    left = leftExpression.toString();
+                    right = rightExpression.toString();
+                    operator = operatorMap.get(expressionClass);
+                }
+            } else if (expressionClass.equals(Between.class)) {
+                left = ((Between) expression).getLeftExpression().toString();
+                right = ((Between) expression).getBetweenExpressionStart() + " and " +
+                        ((Between) expression).getBetweenExpressionEnd();
+                operator = Operator.BET;
+            } else if (expressionClass.equals(InExpression.class)) {
+                left = ((InExpression) expression).getLeftExpression().toString();
+                right = ((InExpression) expression).getRightItemsList().toString();
+                operator = ((InExpression) expression).isNot() ? Operator.NOTIN : Operator.IN;
+
+            } else if (expressionClass.equals(LikeExpression.class)) {
+                left = ((BinaryExpression) expression).getLeftExpression().toString();
+                right = ((BinaryExpression) expression).getRightExpression().toString();
+                operator = ((LikeExpression) expression).isNot() ? Operator.NOTLIKE : Operator.LIKE;
             }
-            if (columnName != null) {
-                String tableName = getTableNameByColumn(columnName);
-                results.put(tableName, expression.toString());
+            if (left != null) {
+                String tableName = getTableNameByColumn(left);
+                results.add(new Where(operator, left, right, tableName, String.valueOf(id), and));
             }
         }
     }
@@ -236,7 +315,7 @@ public class QueryTreeGenerator {
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        QueryNode queryNode = generate(connection, Common.getSql("sql/3.sql"));
+        QueryNode queryNode = generate(connection, Common.getSql("sql/17.sql"));
         queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
         connection.close();
     }
