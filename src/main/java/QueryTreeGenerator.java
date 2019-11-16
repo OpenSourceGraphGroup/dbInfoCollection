@@ -240,7 +240,7 @@ public class QueryTreeGenerator {
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        QueryNode start = generate(connection, Common.getSql("sql/16.sql"));
+        QueryNode start = generate(connection, Common.getSql("sql/3.sql"));
         while (start != null) {
             System.out.print(start.nodeType + " " + start.condition);
             if (start.rightChild != null) {
