@@ -1,5 +1,5 @@
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 
 /**
@@ -45,10 +45,21 @@ public class Common {
         try {
             FileInputStream in = new FileInputStream(file);
             in.read(content);
-            return new String(content, "UTF-8");
+            return new String(content, StandardCharsets.UTF_8);
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return "";
+        }
+    }
+
+    static void writeTo(String content, String filePath) {
+        File file = new File(filePath);
+        try {
+            Writer out = new FileWriter(file);
+            out.write(content);
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

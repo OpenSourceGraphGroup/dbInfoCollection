@@ -1,0 +1,108 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "433690.99"
+    },
+    "ordering_operation": {
+      "using_filesort": true,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": false,
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "customer",
+              "access_type": "ALL",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "rows_examined_per_scan": 149438,
+              "rows_produced_per_join": 14943,
+              "filtered": "10.00",
+              "cost_info": {
+                "read_cost": "28661.84",
+                "eval_cost": "2988.76",
+                "prefix_cost": "31650.60",
+                "data_read_per_join": "3M"
+              },
+              "used_columns": [
+                "C_CUSTKEY",
+                "C_MKTSEGMENT"
+              ],
+              "attached_condition": "(`tpch`.`customer`.`C_MKTSEGMENT` = 'HOUSEHOLD')"
+            }
+          },
+          {
+            "table": {
+              "table_name": "orders",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY",
+                "ORDERS_FK1"
+              ],
+              "key": "ORDERS_FK1",
+              "used_key_parts": [
+                "O_CUSTKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.customer.C_CUSTKEY"
+              ],
+              "rows_examined_per_scan": 14,
+              "rows_produced_per_join": 74471,
+              "filtered": "33.33",
+              "cost_info": {
+                "read_cost": "223437.44",
+                "eval_cost": "14894.34",
+                "prefix_cost": "299775.53",
+                "data_read_per_join": "9M"
+              },
+              "used_columns": [
+                "O_ORDERKEY",
+                "O_CUSTKEY",
+                "O_ORDERDATE",
+                "O_SHIPPRIORITY"
+              ],
+              "attached_condition": "(`tpch`.`orders`.`O_ORDERDATE` < DATE'1995-03-10')"
+            }
+          },
+          {
+            "table": {
+              "table_name": "lineitem",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "L_ORDERKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.orders.O_ORDERKEY"
+              ],
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 97821,
+              "filtered": "33.33",
+              "cost_info": {
+                "read_cost": "75216.59",
+                "eval_cost": "19564.33",
+                "prefix_cost": "433690.99",
+                "data_read_per_join": "12M"
+              },
+              "used_columns": [
+                "L_ORDERKEY",
+                "L_LINENUMBER",
+                "L_EXTENDEDPRICE",
+                "L_DISCOUNT",
+                "L_SHIPDATE"
+              ],
+              "attached_condition": "(`tpch`.`lineitem`.`L_SHIPDATE` > DATE'1995-03-10')"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

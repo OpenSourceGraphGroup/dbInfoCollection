@@ -1,0 +1,202 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "902402.81"
+    },
+    "ordering_operation": {
+      "using_filesort": true,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": false,
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "region",
+              "access_type": "ALL",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "rows_examined_per_scan": 5,
+              "rows_produced_per_join": 1,
+              "filtered": "20.00",
+              "cost_info": {
+                "read_cost": "1.80",
+                "eval_cost": "0.20",
+                "prefix_cost": "2.00",
+                "data_read_per_join": "184"
+              },
+              "used_columns": [
+                "R_REGIONKEY",
+                "R_NAME"
+              ],
+              "attached_condition": "(`tpch`.`region`.`R_NAME` = 'AMERICA')"
+            }
+          },
+          {
+            "table": {
+              "table_name": "nation",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY",
+                "NATION_FK1"
+              ],
+              "key": "NATION_FK1",
+              "used_key_parts": [
+                "N_REGIONKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.region.R_REGIONKEY"
+              ],
+              "rows_examined_per_scan": 5,
+              "rows_produced_per_join": 5,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "2.50",
+                "eval_cost": "1.00",
+                "prefix_cost": "5.50",
+                "data_read_per_join": "960"
+              },
+              "used_columns": [
+                "N_NATIONKEY",
+                "N_NAME",
+                "N_REGIONKEY"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "customer",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY",
+                "CUSTOMER_FK1"
+              ],
+              "key": "CUSTOMER_FK1",
+              "used_key_parts": [
+                "C_NATIONKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.nation.N_NATIONKEY"
+              ],
+              "rows_examined_per_scan": 6226,
+              "rows_produced_per_join": 31132,
+              "filtered": "100.00",
+              "using_index": true,
+              "cost_info": {
+                "read_cost": "35.37",
+                "eval_cost": "6226.58",
+                "prefix_cost": "6267.45",
+                "data_read_per_join": "6M"
+              },
+              "used_columns": [
+                "C_CUSTKEY",
+                "C_NATIONKEY"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "orders",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY",
+                "ORDERS_FK1"
+              ],
+              "key": "ORDERS_FK1",
+              "used_key_parts": [
+                "O_CUSTKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.customer.C_CUSTKEY"
+              ],
+              "rows_examined_per_scan": 14,
+              "rows_produced_per_join": 51711,
+              "filtered": "11.11",
+              "cost_info": {
+                "read_cost": "465494.69",
+                "eval_cost": "10342.26",
+                "prefix_cost": "564861.08",
+                "data_read_per_join": "6M"
+              },
+              "used_columns": [
+                "O_ORDERKEY",
+                "O_CUSTKEY",
+                "O_ORDERDATE"
+              ],
+              "attached_condition": "((`tpch`.`orders`.`O_ORDERDATE` >= DATE'1997-01-01') and (`tpch`.`orders`.`O_ORDERDATE` < <cache>((DATE'1997-01-01' + interval '1' year))))"
+            }
+          },
+          {
+            "table": {
+              "table_name": "lineitem",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "L_ORDERKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.orders.O_ORDERKEY"
+              ],
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 203795,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "52228.52",
+                "eval_cost": "40759.03",
+                "prefix_cost": "657848.63",
+                "data_read_per_join": "26M"
+              },
+              "used_columns": [
+                "L_ORDERKEY",
+                "L_SUPPKEY",
+                "L_LINENUMBER",
+                "L_EXTENDEDPRICE",
+                "L_DISCOUNT"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "supplier",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY",
+                "SUPPLIER_FK1"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "S_SUPPKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.lineitem.L_SUPPKEY"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 10189,
+              "filtered": "5.00",
+              "cost_info": {
+                "read_cost": "203795.15",
+                "eval_cost": "2037.95",
+                "prefix_cost": "902402.81",
+                "data_read_per_join": "1M"
+              },
+              "used_columns": [
+                "S_SUPPKEY",
+                "S_NATIONKEY"
+              ],
+              "attached_condition": "(`tpch`.`supplier`.`S_NATIONKEY` = `tpch`.`nation`.`N_NATIONKEY`)"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

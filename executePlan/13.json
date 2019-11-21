@@ -1,0 +1,108 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "558603.50"
+    },
+    "ordering_operation": {
+      "using_filesort": true,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": false,
+        "table": {
+          "table_name": "c_orders",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 2234374,
+          "rows_produced_per_join": 2234374,
+          "filtered": "100.00",
+          "cost_info": {
+            "read_cost": "111728.70",
+            "eval_cost": "446874.80",
+            "prefix_cost": "558603.50",
+            "data_read_per_join": "51M"
+          },
+          "used_columns": [
+            "c_custkey",
+            "c_count"
+          ],
+          "materialized_from_subquery": {
+            "using_temporary_table": true,
+            "dependent": false,
+            "cacheable": true,
+            "query_block": {
+              "select_id": 2,
+              "cost_info": {
+                "query_cost": "2712899.89"
+              },
+              "grouping_operation": {
+                "using_filesort": false,
+                "nested_loop": [
+                  {
+                    "table": {
+                      "table_name": "customer",
+                      "access_type": "index",
+                      "possible_keys": [
+                        "PRIMARY",
+                        "CUSTOMER_FK1"
+                      ],
+                      "key": "PRIMARY",
+                      "used_key_parts": [
+                        "C_CUSTKEY"
+                      ],
+                      "key_length": "4",
+                      "rows_examined_per_scan": 149438,
+                      "rows_produced_per_join": 149438,
+                      "filtered": "100.00",
+                      "using_index": true,
+                      "cost_info": {
+                        "read_cost": "1763.00",
+                        "eval_cost": "29887.60",
+                        "prefix_cost": "31650.60",
+                        "data_read_per_join": "33M"
+                      },
+                      "used_columns": [
+                        "C_CUSTKEY"
+                      ]
+                    }
+                  },
+                  {
+                    "table": {
+                      "table_name": "orders",
+                      "access_type": "ref",
+                      "possible_keys": [
+                        "ORDERS_FK1"
+                      ],
+                      "key": "ORDERS_FK1",
+                      "used_key_parts": [
+                        "O_CUSTKEY"
+                      ],
+                      "key_length": "4",
+                      "ref": [
+                        "tpch.customer.C_CUSTKEY"
+                      ],
+                      "rows_examined_per_scan": 14,
+                      "rows_produced_per_join": 2234374,
+                      "filtered": "100.00",
+                      "cost_info": {
+                        "read_cost": "2234374.41",
+                        "eval_cost": "446874.88",
+                        "prefix_cost": "2712899.89",
+                        "data_read_per_join": "289M"
+                      },
+                      "used_columns": [
+                        "O_ORDERKEY",
+                        "O_CUSTKEY",
+                        "O_COMMENT"
+                      ],
+                      "attached_condition": "<if>(is_not_null_compl(orders), (not((`tpch`.`orders`.`O_COMMENT` like '%unusual%requests%'))), true)"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

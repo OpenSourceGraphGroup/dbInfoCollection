@@ -1,0 +1,142 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "765253.91"
+    },
+    "ordering_operation": {
+      "using_filesort": true,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": false,
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "orders",
+              "access_type": "ALL",
+              "possible_keys": [
+                "PRIMARY",
+                "ORDERS_FK1"
+              ],
+              "rows_examined_per_scan": 1492060,
+              "rows_produced_per_join": 165751,
+              "filtered": "11.11",
+              "cost_info": {
+                "read_cost": "277273.74",
+                "eval_cost": "33150.26",
+                "prefix_cost": "310424.00",
+                "data_read_per_join": "21M"
+              },
+              "used_columns": [
+                "O_ORDERKEY",
+                "O_CUSTKEY",
+                "O_ORDERDATE"
+              ],
+              "attached_condition": "((`tpch`.`orders`.`O_ORDERDATE` >= DATE'1994-09-01') and (`tpch`.`orders`.`O_ORDERDATE` < <cache>((DATE'1994-09-01' + interval '3' month))))"
+            }
+          },
+          {
+            "table": {
+              "table_name": "lineitem",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "L_ORDERKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.orders.O_ORDERKEY"
+              ],
+              "rows_examined_per_scan": 3,
+              "rows_produced_per_join": 65322,
+              "filtered": "10.00",
+              "cost_info": {
+                "read_cost": "167409.18",
+                "eval_cost": "13064.58",
+                "prefix_cost": "608478.96",
+                "data_read_per_join": "8M"
+              },
+              "used_columns": [
+                "L_ORDERKEY",
+                "L_LINENUMBER",
+                "L_EXTENDEDPRICE",
+                "L_DISCOUNT",
+                "L_RETURNFLAG"
+              ],
+              "attached_condition": "(`tpch`.`lineitem`.`L_RETURNFLAG` = 'R')"
+            }
+          },
+          {
+            "table": {
+              "table_name": "customer",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY",
+                "CUSTOMER_FK1"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "C_CUSTKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.orders.O_CUSTKEY"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 65322,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "65322.89",
+                "eval_cost": "13064.58",
+                "prefix_cost": "686866.44",
+                "data_read_per_join": "14M"
+              },
+              "used_columns": [
+                "C_CUSTKEY",
+                "C_NAME",
+                "C_ADDRESS",
+                "C_NATIONKEY",
+                "C_PHONE",
+                "C_ACCTBAL",
+                "C_COMMENT"
+              ]
+            }
+          },
+          {
+            "table": {
+              "table_name": "nation",
+              "access_type": "eq_ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "N_NATIONKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.customer.C_NATIONKEY"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 65322,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "65322.89",
+                "eval_cost": "13064.58",
+                "prefix_cost": "765253.91",
+                "data_read_per_join": "11M"
+              },
+              "used_columns": [
+                "N_NATIONKEY",
+                "N_NAME"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

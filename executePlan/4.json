@@ -1,0 +1,79 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "cost_info": {
+      "query_cost": "476175.28"
+    },
+    "ordering_operation": {
+      "using_filesort": false,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": true,
+        "cost_info": {
+          "sort_cost": "165751.28"
+        },
+        "table": {
+          "table_name": "orders",
+          "access_type": "ALL",
+          "rows_examined_per_scan": 1492060,
+          "rows_produced_per_join": 165751,
+          "filtered": "11.11",
+          "cost_info": {
+            "read_cost": "277273.74",
+            "eval_cost": "33150.26",
+            "prefix_cost": "310424.00",
+            "data_read_per_join": "21M"
+          },
+          "used_columns": [
+            "O_ORDERKEY",
+            "O_ORDERDATE",
+            "O_ORDERPRIORITY"
+          ],
+          "attached_condition": "((`tpch`.`orders`.`O_ORDERDATE` >= DATE'1994-06-01') and (`tpch`.`orders`.`O_ORDERDATE` < <cache>((DATE'1994-06-01' + interval '3' month))) and exists(/* select#2 */ select 1 from `tpch`.`lineitem` where ((`tpch`.`lineitem`.`L_ORDERKEY` = `tpch`.`orders`.`O_ORDERKEY`) and (`tpch`.`lineitem`.`L_COMMITDATE` < `tpch`.`lineitem`.`L_RECEIPTDATE`))))",
+          "attached_subqueries": [
+            {
+              "dependent": true,
+              "cacheable": false,
+              "query_block": {
+                "select_id": 2,
+                "cost_info": {
+                  "query_cost": "1.80"
+                },
+                "table": {
+                  "table_name": "lineitem",
+                  "access_type": "ref",
+                  "possible_keys": [
+                    "PRIMARY"
+                  ],
+                  "key": "PRIMARY",
+                  "used_key_parts": [
+                    "L_ORDERKEY"
+                  ],
+                  "key_length": "4",
+                  "ref": [
+                    "tpch.orders.O_ORDERKEY"
+                  ],
+                  "rows_examined_per_scan": 3,
+                  "rows_produced_per_join": 1,
+                  "filtered": "33.33",
+                  "cost_info": {
+                    "read_cost": "1.01",
+                    "eval_cost": "0.26",
+                    "prefix_cost": "1.80",
+                    "data_read_per_join": "178"
+                  },
+                  "used_columns": [
+                    "L_ORDERKEY",
+                    "L_COMMITDATE",
+                    "L_RECEIPTDATE"
+                  ],
+                  "attached_condition": "(`tpch`.`lineitem`.`L_COMMITDATE` < `tpch`.`lineitem`.`L_RECEIPTDATE`)"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  }
+}
