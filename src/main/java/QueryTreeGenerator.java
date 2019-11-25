@@ -20,13 +20,18 @@ import java.util.*;
  * @Date: 2019/11/15
  */
 public class QueryTreeGenerator {
+    static int sqlIndex = 0;
+
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
+        for (int i = 1; i < 17; i++) {
+            sqlIndex = i;
             Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-            QueryNode queryNode = generate(connection, Common.getSql("sql/" + 1 + ".sql"));
+            QueryNode queryNode = generate(connection, Common.getSql("sql/" + i + ".sql"));
             queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
             connection.close();
             System.out.println();
+        }
     }
 
     /**
@@ -43,11 +48,14 @@ public class QueryTreeGenerator {
         if (queryPlan.isEmpty()) return null;
         QueryPlan plan = queryPlan.get(0);
         String tableName = tableAlias.getOrDefault(plan.tableName, plan.tableName);
-        QueryNode queryNode = new QueryNode(NodeType.LEAF_NODE, null, null, tableName);
-        // Generate SELECT_NODE
-        if (!plan.attachedCondition.equals("")) {
-            queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, plan.attachedCondition);
-            queryNode = queryNode.parent;
+        QueryNode queryNode = null;
+        if (!tableName.equals("derived")) {
+            queryNode = new QueryNode(NodeType.LEAF_NODE, null, null, tableName);
+            // Generate SELECT_NODE
+            if (!plan.attachedCondition.equals("")) {
+                queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, plan.attachedCondition);
+                queryNode = queryNode.parent;
+            }
         }
         if (!plan.subQueries.isEmpty()) {
             queryNode = generate(connection, plan.subQueries, 0, tableAlias, queryNode);
@@ -59,20 +67,24 @@ public class QueryTreeGenerator {
         for (int index = start; index < queryPlan.size(); index++) {
             QueryPlan plan = queryPlan.get(index);
             String tableName = tableAlias.getOrDefault(plan.tableName, plan.tableName);
-            QueryNode newNode = new QueryNode(NodeType.LEAF_NODE, null, null, tableName);
+            if (!tableName.equals("derived")) {
+                QueryNode newNode = new QueryNode(NodeType.LEAF_NODE, null, null, tableName);
 
+                if (queryNode != null) {
+                    // Generate JOIN_NODE
+                    String joinNodeCondition = plan.ref.isEmpty() ? "" : plan.ref.get(0) + " = " + getJoinKey(connection, plan.key, tableName);
+                    newNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, joinNodeCondition);
+                    queryNode = newNode.parent;
+                } else {
+                    queryNode = newNode;
+                }
 
-            // Generate JOIN_NODE
-            String joinNodeCondition = plan.ref.isEmpty() ? "" : plan.ref.get(0) + " = " + getJoinKey(connection, plan.key, tableName);
-            newNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, joinNodeCondition);
-            queryNode = newNode.parent;
-
-            // Generate SELECT_NODE
-            if (!plan.attachedCondition.equals("")) {
-                queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, plan.attachedCondition);
-                queryNode = queryNode.parent;
+                // Generate SELECT_NODE
+                if (!plan.attachedCondition.equals("")) {
+                    queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, plan.attachedCondition);
+                    queryNode = queryNode.parent;
+                }
             }
-
 
             if (!plan.subQueries.isEmpty()) {
                 queryNode = generate(connection, plan.subQueries, 0, tableAlias, queryNode);
@@ -95,6 +107,7 @@ public class QueryTreeGenerator {
         try {
             if (resultSet.next()) {
                 String planJson = resultSet.getObject(1).toString();
+                Common.writeTo(planJson, "executePlan/"+sqlIndex+".json");
                 Map<String, Object> json = new JSONObject(planJson).toMap();
                 List<QueryPlan> results = new ArrayList<>();
                 getPlan(json, results);
@@ -149,11 +162,14 @@ public class QueryTreeGenerator {
      * @return
      */
     private static String getJoinKey(Connection connection, String indexName, String tableName) {
-        String sql = String.format("select COLUMN_NAME from INFORMATION_SCHEMA.STATISTICS WHERE INDEX_NAME = '%s' and TABLE_NAME = '%s'", indexName, tableName);
+        String sql = String.format("select * from INFORMATION_SCHEMA.STATISTICS WHERE INDEX_NAME = '%s' and TABLE_NAME = '%s'", indexName, tableName);
         try {
             ResultSet resultSet = Common.query(connection, sql);
-            if (resultSet.next())
-                return resultSet.getString("COLUMN_NAME");
+            if (resultSet.next()) {
+                String schemaName = resultSet.getString("TABLE_SCHEMA");
+                String columnName = resultSet.getString("COLUMN_NAME");
+                return String.format("%s.%s.%s", schemaName, tableName, columnName);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -189,11 +205,11 @@ public class QueryTreeGenerator {
         QueryPlan(Map<String, Object> object) {
             ref = (ArrayList<String>) object.getOrDefault("ref", new ArrayList<>());
             key = object.getOrDefault("key", "").toString();
-            tableName = object.getOrDefault("table_name", "").toString().replace("`", "");
+            tableName = object.containsKey("materialized_from_subquery") ? "derived" : object.getOrDefault("table_name", "").toString().replace("`", "");
             attachedCondition = object.getOrDefault("attached_condition", "").toString().replace("`", "").replace("<cache>", "");
             usedColumns = (ArrayList<String>) object.getOrDefault("used_columns", new ArrayList<>());
-            List subQueryJson = (List) object.getOrDefault("attached_subqueries", new ArrayList<>());
-            getPlan(subQueryJson, subQueries);
+//            List subQueryJson = (List) object.getOrDefault("attached_subqueries", new ArrayList<>());
+            getPlan(object, subQueries);
         }
     }
 }

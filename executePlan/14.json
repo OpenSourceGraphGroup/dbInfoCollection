@@ -1,63 +1,36 @@
 {
   "query_block": {
     "select_id": 1,
-    "cost_info": {
-      "query_cost": "1990108.40"
-    },
     "nested_loop": [
       {
         "table": {
-          "table_name": "lineitem",
+          "table_name": "part",
           "access_type": "ALL",
           "possible_keys": [
-            "LINEITEM_FK2"
+            "PRIMARY"
           ],
-          "rows_examined_per_scan": 5809318,
-          "rows_produced_per_join": 645350,
-          "filtered": "11.11",
-          "cost_info": {
-            "read_cost": "1086617.47",
-            "eval_cost": "129070.13",
-            "prefix_cost": "1215687.60",
-            "data_read_per_join": "83M"
-          },
-          "used_columns": [
-            "L_PARTKEY",
-            "L_EXTENDEDPRICE",
-            "L_DISCOUNT",
-            "L_SHIPDATE"
-          ],
-          "attached_condition": "((`tpch`.`lineitem`.`L_SHIPDATE` >= DATE'1994-09-01') and (`tpch`.`lineitem`.`L_SHIPDATE` < <cache>((DATE'1994-09-01' + interval '1' month))))"
+          "rows": 197956,
+          "filtered": 100
         }
       },
       {
         "table": {
-          "table_name": "part",
-          "access_type": "eq_ref",
+          "table_name": "lineitem",
+          "access_type": "ref",
           "possible_keys": [
-            "PRIMARY"
+            "LINEITEM_FK2"
           ],
-          "key": "PRIMARY",
+          "key": "LINEITEM_FK2",
           "used_key_parts": [
-            "P_PARTKEY"
+            "L_PARTKEY"
           ],
           "key_length": "4",
           "ref": [
-            "tpch.lineitem.L_PARTKEY"
+            "tpch.part.P_PARTKEY"
           ],
-          "rows_examined_per_scan": 1,
-          "rows_produced_per_join": 645350,
-          "filtered": "100.00",
-          "cost_info": {
-            "read_cost": "645350.67",
-            "eval_cost": "129070.13",
-            "prefix_cost": "1990108.40",
-            "data_read_per_join": "103M"
-          },
-          "used_columns": [
-            "P_PARTKEY",
-            "P_TYPE"
-          ]
+          "rows": 1,
+          "filtered": 100,
+          "attached_condition": "((`tpch`.`lineitem`.`L_SHIPDATE` >= DATE'1994-09-01') and (`tpch`.`lineitem`.`L_SHIPDATE` < <cache>((DATE'1994-09-01' + interval '1' month))))"
         }
       }
     ]

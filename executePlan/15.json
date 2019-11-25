@@ -1,27 +1,13 @@
 {
   "query_block": {
     "select_id": 1,
-    "cost_info": {
-      "query_cost": "1990108.40"
-    },
     "nested_loop": [
       {
         "table": {
           "table_name": "lineitem",
           "access_type": "ALL",
-          "rows_examined_per_scan": 5809318,
-          "rows_produced_per_join": 645350,
-          "filtered": "11.11",
-          "cost_info": {
-            "read_cost": "1086617.47",
-            "eval_cost": "129070.13",
-            "prefix_cost": "1215687.60",
-            "data_read_per_join": "83M"
-          },
-          "used_columns": [
-            "L_SUPPKEY",
-            "L_SHIPDATE"
-          ],
+          "rows": 5801894,
+          "filtered": 100,
           "attached_condition": "((`tpch`.`lineitem`.`L_SHIPDATE` >= DATE'1997-09-01') and (`tpch`.`lineitem`.`L_SHIPDATE` < <cache>((DATE'1997-09-01' + interval '3' month))))"
         }
       },
@@ -40,21 +26,8 @@
           "ref": [
             "tpch.lineitem.L_SUPPKEY"
           ],
-          "rows_examined_per_scan": 1,
-          "rows_produced_per_join": 645350,
-          "filtered": "100.00",
-          "cost_info": {
-            "read_cost": "645350.67",
-            "eval_cost": "129070.13",
-            "prefix_cost": "1990108.40",
-            "data_read_per_join": "123M"
-          },
-          "used_columns": [
-            "S_SUPPKEY",
-            "S_NAME",
-            "S_ADDRESS",
-            "S_PHONE"
-          ]
+          "rows": 1,
+          "filtered": 100
         }
       }
     ]

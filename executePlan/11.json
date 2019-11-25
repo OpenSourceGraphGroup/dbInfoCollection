@@ -1,9 +1,6 @@
 {
   "query_block": {
     "select_id": 1,
-    "cost_info": {
-      "query_cost": "95806.05"
-    },
     "ordering_operation": {
       "using_filesort": true,
       "grouping_operation": {
@@ -17,19 +14,8 @@
               "possible_keys": [
                 "PRIMARY"
               ],
-              "rows_examined_per_scan": 25,
-              "rows_produced_per_join": 2,
-              "filtered": "10.00",
-              "cost_info": {
-                "read_cost": "5.50",
-                "eval_cost": "0.50",
-                "prefix_cost": "6.00",
-                "data_read_per_join": "480"
-              },
-              "used_columns": [
-                "N_NATIONKEY",
-                "N_NAME"
-              ],
+              "rows": 25,
+              "filtered": 100,
               "attached_condition": "(`tpch`.`nation`.`N_NAME` = 'MOZAMBIQUE')"
             }
           },
@@ -49,20 +35,9 @@
               "ref": [
                 "tpch.nation.N_NATIONKEY"
               ],
-              "rows_examined_per_scan": 401,
-              "rows_produced_per_join": 1004,
-              "filtered": "100.00",
-              "using_index": true,
-              "cost_info": {
-                "read_cost": "3.48",
-                "eval_cost": "200.98",
-                "prefix_cost": "210.46",
-                "data_read_per_join": "196K"
-              },
-              "used_columns": [
-                "S_SUPPKEY",
-                "S_NATIONKEY"
-              ]
+              "rows": 200,
+              "filtered": 100,
+              "using_index": true
             }
           },
           {
@@ -81,33 +56,17 @@
               "ref": [
                 "tpch.supplier.S_SUPPKEY"
               ],
-              "rows_examined_per_scan": 79,
-              "rows_produced_per_join": 79662,
-              "filtered": "100.00",
-              "cost_info": {
-                "read_cost": "79663.00",
-                "eval_cost": "15932.60",
-                "prefix_cost": "95806.05",
-                "data_read_per_join": "17M"
-              },
-              "used_columns": [
-                "PS_PARTKEY",
-                "PS_SUPPKEY",
-                "PS_AVAILQTY",
-                "PS_SUPPLYCOST"
-              ]
+              "rows": 44,
+              "filtered": 100
             }
           }
         ],
-        "having_subqueries": [
+        "optimized_away_subqueries": [
           {
             "dependent": false,
             "cacheable": true,
             "query_block": {
               "select_id": 2,
-              "cost_info": {
-                "query_cost": "95806.05"
-              },
               "nested_loop": [
                 {
                   "table": {
@@ -116,19 +75,8 @@
                     "possible_keys": [
                       "PRIMARY"
                     ],
-                    "rows_examined_per_scan": 25,
-                    "rows_produced_per_join": 2,
-                    "filtered": "10.00",
-                    "cost_info": {
-                      "read_cost": "5.50",
-                      "eval_cost": "0.50",
-                      "prefix_cost": "6.00",
-                      "data_read_per_join": "480"
-                    },
-                    "used_columns": [
-                      "N_NATIONKEY",
-                      "N_NAME"
-                    ],
+                    "rows": 25,
+                    "filtered": 100,
                     "attached_condition": "(`tpch`.`nation`.`N_NAME` = 'MOZAMBIQUE')"
                   }
                 },
@@ -148,20 +96,9 @@
                     "ref": [
                       "tpch.nation.N_NATIONKEY"
                     ],
-                    "rows_examined_per_scan": 401,
-                    "rows_produced_per_join": 1004,
-                    "filtered": "100.00",
-                    "using_index": true,
-                    "cost_info": {
-                      "read_cost": "3.48",
-                      "eval_cost": "200.98",
-                      "prefix_cost": "210.46",
-                      "data_read_per_join": "196K"
-                    },
-                    "used_columns": [
-                      "S_SUPPKEY",
-                      "S_NATIONKEY"
-                    ]
+                    "rows": 200,
+                    "filtered": 100,
+                    "using_index": true
                   }
                 },
                 {
@@ -179,20 +116,8 @@
                     "ref": [
                       "tpch.supplier.S_SUPPKEY"
                     ],
-                    "rows_examined_per_scan": 79,
-                    "rows_produced_per_join": 79662,
-                    "filtered": "100.00",
-                    "cost_info": {
-                      "read_cost": "79663.00",
-                      "eval_cost": "15932.60",
-                      "prefix_cost": "95806.05",
-                      "data_read_per_join": "17M"
-                    },
-                    "used_columns": [
-                      "PS_SUPPKEY",
-                      "PS_AVAILQTY",
-                      "PS_SUPPLYCOST"
-                    ]
+                    "rows": 44,
+                    "filtered": 100
                   }
                 }
               ]

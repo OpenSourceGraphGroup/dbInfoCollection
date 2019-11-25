@@ -1,73 +1,41 @@
 {
   "query_block": {
     "select_id": 1,
-    "cost_info": {
-      "query_cost": "1247231.77"
-    },
     "ordering_operation": {
       "using_filesort": false,
       "grouping_operation": {
         "using_temporary_table": true,
         "using_filesort": true,
-        "cost_info": {
-          "sort_cost": "14338.26"
-        },
         "nested_loop": [
           {
             "table": {
-              "table_name": "lineitem",
+              "table_name": "orders",
               "access_type": "ALL",
               "possible_keys": [
                 "PRIMARY"
               ],
-              "rows_examined_per_scan": 5809318,
-              "rows_produced_per_join": 14338,
-              "filtered": "0.25",
-              "cost_info": {
-                "read_cost": "1212819.95",
-                "eval_cost": "2867.65",
-                "prefix_cost": "1215687.60",
-                "data_read_per_join": "1M"
-              },
-              "used_columns": [
-                "L_ORDERKEY",
-                "L_LINENUMBER",
-                "L_SHIPDATE",
-                "L_COMMITDATE",
-                "L_RECEIPTDATE",
-                "L_SHIPMODE"
-              ],
-              "attached_condition": "((`tpch`.`lineitem`.`L_SHIPMODE` in ('AIR','TRUCK')) and (`tpch`.`lineitem`.`L_COMMITDATE` < `tpch`.`lineitem`.`L_RECEIPTDATE`) and (`tpch`.`lineitem`.`L_SHIPDATE` < `tpch`.`lineitem`.`L_COMMITDATE`) and (`tpch`.`lineitem`.`L_RECEIPTDATE` >= DATE'1994-01-01') and (`tpch`.`lineitem`.`L_RECEIPTDATE` < <cache>((DATE'1994-01-01' + interval '1' year))))"
+              "rows": 1490265,
+              "filtered": 100
             }
           },
           {
             "table": {
-              "table_name": "orders",
-              "access_type": "eq_ref",
+              "table_name": "lineitem",
+              "access_type": "ref",
               "possible_keys": [
                 "PRIMARY"
               ],
               "key": "PRIMARY",
               "used_key_parts": [
-                "O_ORDERKEY"
+                "L_ORDERKEY"
               ],
               "key_length": "4",
               "ref": [
-                "tpch.lineitem.L_ORDERKEY"
+                "tpch.orders.O_ORDERKEY"
               ],
-              "rows_examined_per_scan": 1,
-              "rows_produced_per_join": 14338,
-              "filtered": "100.00",
-              "cost_info": {
-                "read_cost": "14338.26",
-                "eval_cost": "2867.65",
-                "prefix_cost": "1232893.51",
-                "data_read_per_join": "1M"
-              },
-              "used_columns": [
-                "O_ORDERKEY",
-                "O_ORDERPRIORITY"
-              ]
+              "rows": 1,
+              "filtered": 100,
+              "attached_condition": "((`tpch`.`lineitem`.`L_SHIPMODE` in ('AIR','TRUCK')) and (`tpch`.`lineitem`.`L_COMMITDATE` < `tpch`.`lineitem`.`L_RECEIPTDATE`) and (`tpch`.`lineitem`.`L_SHIPDATE` < `tpch`.`lineitem`.`L_COMMITDATE`) and (`tpch`.`lineitem`.`L_RECEIPTDATE` >= DATE'1994-01-01') and (`tpch`.`lineitem`.`L_RECEIPTDATE` < <cache>((DATE'1994-01-01' + interval '1' year))))"
             }
           }
         ]
