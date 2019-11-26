@@ -1,0 +1,19 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "ordering_operation": {
+      "using_filesort": false,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": true,
+        "table": {
+          "table_name": "lineitem",
+          "access_type": "ALL",
+          "rows": 5801894,
+          "filtered": 100,
+          "attached_condition": "(`tpch`.`lineitem`.`L_SHIPDATE` <= <cache>((DATE'1998-12-01' - interval '64' day)))"
+        }
+      }
+    }
+  }
+}

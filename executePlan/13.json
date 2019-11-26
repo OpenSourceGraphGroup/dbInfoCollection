@@ -1,0 +1,69 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "ordering_operation": {
+      "using_filesort": true,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": false,
+        "table": {
+          "table_name": "c_orders",
+          "access_type": "ALL",
+          "rows": 148560,
+          "filtered": 100,
+          "materialized_from_subquery": {
+            "using_temporary_table": true,
+            "dependent": false,
+            "cacheable": true,
+            "query_block": {
+              "select_id": 2,
+              "grouping_operation": {
+                "using_filesort": false,
+                "nested_loop": [
+                  {
+                    "table": {
+                      "table_name": "customer",
+                      "access_type": "index",
+                      "possible_keys": [
+                        "PRIMARY",
+                        "CUSTOMER_FK1"
+                      ],
+                      "key": "PRIMARY",
+                      "used_key_parts": [
+                        "C_CUSTKEY"
+                      ],
+                      "key_length": "4",
+                      "rows": 148560,
+                      "filtered": 100,
+                      "using_index": true
+                    }
+                  },
+                  {
+                    "table": {
+                      "table_name": "orders",
+                      "access_type": "ref",
+                      "possible_keys": [
+                        "ORDERS_FK1"
+                      ],
+                      "key": "ORDERS_FK1",
+                      "used_key_parts": [
+                        "O_CUSTKEY"
+                      ],
+                      "key_length": "4",
+                      "ref": [
+                        "tpch.customer.C_CUSTKEY"
+                      ],
+                      "rows": 1,
+                      "filtered": 100,
+                      "attached_condition": "<if>(is_not_null_compl(orders), (not((`tpch`.`orders`.`O_COMMENT` like '%unusual%requests%'))), true)"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

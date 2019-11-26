@@ -7,6 +7,10 @@ enum NodeType {
     JOIN_NODE, SELECT_NODE, LEAF_NODE
 }
 
+interface QueryNodeProcessor {
+    void process(QueryNode queryNode);
+}
+
 class QueryNode {
     int count;
     NodeType nodeType;
@@ -15,7 +19,7 @@ class QueryNode {
     QueryNode rightChild;
     String condition;
 
-    public QueryNode(NodeType type, String condition){
+    public QueryNode(NodeType type, String condition) {
         this.count = 0;
         this.nodeType = type;
         this.parent = null;
@@ -23,6 +27,14 @@ class QueryNode {
         this.rightChild = null;
         this.condition = condition;
     }
+
+    QueryNode(NodeType nodeType, QueryNode leftChild, QueryNode rightChild, String condition) {
+        this.nodeType = nodeType;
+        this.leftChild = leftChild;
+        this.rightChild = rightChild;
+        this.condition = condition;
+    }
+
     public int getCount() {
         return count;
     }
@@ -37,6 +49,14 @@ class QueryNode {
 
     public void setNodeType(NodeType nodeType) {
         this.nodeType = nodeType;
+    }
+
+    void postOrder(QueryNodeProcessor processor) {
+        if (leftChild != null)
+            leftChild.postOrder(processor);
+        if (rightChild != null)
+            rightChild.postOrder(processor);
+        processor.process(this);
     }
 
     public QueryNode getParent() {

@@ -1,0 +1,194 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "ordering_operation": {
+      "using_temporary_table": true,
+      "using_filesort": true,
+      "nested_loop": [
+        {
+          "table": {
+            "table_name": "region",
+            "access_type": "ALL",
+            "possible_keys": [
+              "PRIMARY"
+            ],
+            "rows": 5,
+            "filtered": 100,
+            "attached_condition": "(`tpch`.`region`.`R_NAME` = 'AMERICA')"
+          }
+        },
+        {
+          "table": {
+            "table_name": "nation",
+            "access_type": "ref",
+            "possible_keys": [
+              "PRIMARY",
+              "NATION_FK1"
+            ],
+            "key": "NATION_FK1",
+            "used_key_parts": [
+              "N_REGIONKEY"
+            ],
+            "key_length": "4",
+            "ref": [
+              "tpch.region.R_REGIONKEY"
+            ],
+            "rows": 2,
+            "filtered": 100
+          }
+        },
+        {
+          "table": {
+            "table_name": "supplier",
+            "access_type": "ref",
+            "possible_keys": [
+              "PRIMARY",
+              "SUPPLIER_FK1"
+            ],
+            "key": "SUPPLIER_FK1",
+            "used_key_parts": [
+              "S_NATIONKEY"
+            ],
+            "key_length": "4",
+            "ref": [
+              "tpch.nation.N_NATIONKEY"
+            ],
+            "rows": 200,
+            "filtered": 100
+          }
+        },
+        {
+          "table": {
+            "table_name": "partsupp",
+            "access_type": "ref",
+            "possible_keys": [
+              "PRIMARY",
+              "PARTSUPP_FK1"
+            ],
+            "key": "PARTSUPP_FK1",
+            "used_key_parts": [
+              "PS_SUPPKEY"
+            ],
+            "key_length": "4",
+            "ref": [
+              "tpch.supplier.S_SUPPKEY"
+            ],
+            "rows": 44,
+            "filtered": 100
+          }
+        },
+        {
+          "table": {
+            "table_name": "part",
+            "access_type": "eq_ref",
+            "possible_keys": [
+              "PRIMARY"
+            ],
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "P_PARTKEY"
+            ],
+            "key_length": "4",
+            "ref": [
+              "tpch.partsupp.PS_PARTKEY"
+            ],
+            "rows": 1,
+            "filtered": 100,
+            "attached_condition": "((`tpch`.`part`.`P_SIZE` = 5) and (`tpch`.`part`.`P_TYPE` like '%COPPER') and (`tpch`.`partsupp`.`PS_SUPPLYCOST` = (/* select#2 */ select min(`tpch`.`partsupp`.`PS_SUPPLYCOST`) from `tpch`.`partsupp` join `tpch`.`supplier` join `tpch`.`nation` join `tpch`.`region` where ((`tpch`.`region`.`R_NAME` = 'AMERICA') and (`tpch`.`region`.`R_REGIONKEY` = `tpch`.`nation`.`N_REGIONKEY`) and (`tpch`.`nation`.`N_NATIONKEY` = `tpch`.`supplier`.`S_NATIONKEY`) and (`tpch`.`supplier`.`S_SUPPKEY` = `tpch`.`partsupp`.`PS_SUPPKEY`) and (`tpch`.`part`.`P_PARTKEY` = `tpch`.`partsupp`.`PS_PARTKEY`)))))",
+            "attached_subqueries": [
+              {
+                "dependent": true,
+                "cacheable": false,
+                "query_block": {
+                  "select_id": 2,
+                  "nested_loop": [
+                    {
+                      "table": {
+                        "table_name": "partsupp",
+                        "access_type": "ref",
+                        "possible_keys": [
+                          "PRIMARY",
+                          "PARTSUPP_FK1"
+                        ],
+                        "key": "PRIMARY",
+                        "used_key_parts": [
+                          "PS_PARTKEY"
+                        ],
+                        "key_length": "4",
+                        "ref": [
+                          "tpch.part.P_PARTKEY"
+                        ],
+                        "rows": 2,
+                        "filtered": 100
+                      }
+                    },
+                    {
+                      "table": {
+                        "table_name": "supplier",
+                        "access_type": "eq_ref",
+                        "possible_keys": [
+                          "PRIMARY",
+                          "SUPPLIER_FK1"
+                        ],
+                        "key": "PRIMARY",
+                        "used_key_parts": [
+                          "S_SUPPKEY"
+                        ],
+                        "key_length": "4",
+                        "ref": [
+                          "tpch.partsupp.PS_SUPPKEY"
+                        ],
+                        "rows": 1,
+                        "filtered": 100
+                      }
+                    },
+                    {
+                      "table": {
+                        "table_name": "nation",
+                        "access_type": "eq_ref",
+                        "possible_keys": [
+                          "PRIMARY",
+                          "NATION_FK1"
+                        ],
+                        "key": "PRIMARY",
+                        "used_key_parts": [
+                          "N_NATIONKEY"
+                        ],
+                        "key_length": "4",
+                        "ref": [
+                          "tpch.supplier.S_NATIONKEY"
+                        ],
+                        "rows": 1,
+                        "filtered": 100
+                      }
+                    },
+                    {
+                      "table": {
+                        "table_name": "region",
+                        "access_type": "eq_ref",
+                        "possible_keys": [
+                          "PRIMARY"
+                        ],
+                        "key": "PRIMARY",
+                        "used_key_parts": [
+                          "R_REGIONKEY"
+                        ],
+                        "key_length": "4",
+                        "ref": [
+                          "tpch.nation.N_REGIONKEY"
+                        ],
+                        "rows": 1,
+                        "filtered": 100,
+                        "attached_condition": "(`tpch`.`region`.`R_NAME` = 'AMERICA')"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
