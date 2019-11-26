@@ -1,0 +1,141 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "ordering_operation": {
+      "using_filesort": false,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": true,
+        "table": {
+          "table_name": "profit",
+          "access_type": "ALL",
+          "rows": 220000,
+          "filtered": 100,
+          "materialized_from_subquery": {
+            "using_temporary_table": true,
+            "dependent": false,
+            "cacheable": true,
+            "query_block": {
+              "select_id": 2,
+              "nested_loop": [
+                {
+                  "table": {
+                    "table_name": "nation",
+                    "access_type": "ALL",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "rows": 25,
+                    "filtered": 100
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "supplier",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "SUPPLIER_FK1"
+                    ],
+                    "key": "SUPPLIER_FK1",
+                    "used_key_parts": [
+                      "S_NATIONKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.nation.N_NATIONKEY"
+                    ],
+                    "rows": 200,
+                    "filtered": 100,
+                    "using_index": true
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "partsupp",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "PARTSUPP_FK1"
+                    ],
+                    "key": "PARTSUPP_FK1",
+                    "used_key_parts": [
+                      "PS_SUPPKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.supplier.S_SUPPKEY"
+                    ],
+                    "rows": 44,
+                    "filtered": 100
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "part",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "P_PARTKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.partsupp.PS_PARTKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100,
+                    "attached_condition": "(`tpch`.`part`.`P_NAME` like '%azure%')"
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "lineitem",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "LINEITEM_FK2"
+                    ],
+                    "key": "LINEITEM_FK2",
+                    "used_key_parts": [
+                      "L_PARTKEY",
+                      "L_SUPPKEY"
+                    ],
+                    "key_length": "8",
+                    "ref": [
+                      "tpch.partsupp.PS_PARTKEY",
+                      "tpch.supplier.S_SUPPKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "orders",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "O_ORDERKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.lineitem.L_ORDERKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

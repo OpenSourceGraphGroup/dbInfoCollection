@@ -1,0 +1,76 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "ordering_operation": {
+      "using_temporary_table": true,
+      "using_filesort": true,
+      "grouping_operation": {
+        "using_filesort": true,
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "part",
+              "access_type": "ALL",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "rows": 197956,
+              "filtered": 100,
+              "attached_condition": "((`tpch`.`part`.`P_BRAND` <> 'Brand#51') and (not((`tpch`.`part`.`P_TYPE` like 'STANDARD ANODIZED%'))) and (`tpch`.`part`.`P_SIZE` in (42,33,35,6,46,24,15,21)))"
+            }
+          },
+          {
+            "table": {
+              "table_name": "partsupp",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "PS_PARTKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.part.P_PARTKEY"
+              ],
+              "rows": 2,
+              "filtered": 100,
+              "using_index": true,
+              "attached_condition": "(not(<in_optimizer>(`tpch`.`partsupp`.`PS_SUPPKEY`,`tpch`.`partsupp`.`PS_SUPPKEY` in ( <materialize> (/* select#2 */ select `tpch`.`supplier`.`S_SUPPKEY` from `tpch`.`supplier` where (`tpch`.`supplier`.`S_COMMENT` like '%Customer%Complaints%') ), <primary_index_lookup>(`tpch`.`partsupp`.`PS_SUPPKEY` in <temporary table> on <auto_key> where ((`tpch`.`partsupp`.`PS_SUPPKEY` = `materialized-subquery`.`s_suppkey`)))))))",
+              "attached_subqueries": [
+                {
+                  "table": {
+                    "table_name": "<materialized_subquery>",
+                    "access_type": "eq_ref",
+                    "key": "<auto_key>",
+                    "key_length": "4",
+                    "rows": 1,
+                    "materialized_from_subquery": {
+                      "using_temporary_table": true,
+                      "dependent": true,
+                      "cacheable": false,
+                      "query_block": {
+                        "select_id": 2,
+                        "table": {
+                          "table_name": "supplier",
+                          "access_type": "ALL",
+                          "possible_keys": [
+                            "PRIMARY"
+                          ],
+                          "rows": 10033,
+                          "filtered": 100,
+                          "attached_condition": "(`tpch`.`supplier`.`S_COMMENT` like '%Customer%Complaints%')"
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

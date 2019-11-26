@@ -1,0 +1,130 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "ordering_operation": {
+      "using_filesort": true,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": false,
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "nation",
+              "access_type": "ALL",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "rows": 25,
+              "filtered": 100,
+              "attached_condition": "(`tpch`.`nation`.`N_NAME` = 'MOZAMBIQUE')"
+            }
+          },
+          {
+            "table": {
+              "table_name": "supplier",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY",
+                "SUPPLIER_FK1"
+              ],
+              "key": "SUPPLIER_FK1",
+              "used_key_parts": [
+                "S_NATIONKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.nation.N_NATIONKEY"
+              ],
+              "rows": 200,
+              "filtered": 100,
+              "using_index": true
+            }
+          },
+          {
+            "table": {
+              "table_name": "partsupp",
+              "access_type": "ref",
+              "possible_keys": [
+                "PRIMARY",
+                "PARTSUPP_FK1"
+              ],
+              "key": "PARTSUPP_FK1",
+              "used_key_parts": [
+                "PS_SUPPKEY"
+              ],
+              "key_length": "4",
+              "ref": [
+                "tpch.supplier.S_SUPPKEY"
+              ],
+              "rows": 44,
+              "filtered": 100
+            }
+          }
+        ],
+        "optimized_away_subqueries": [
+          {
+            "dependent": false,
+            "cacheable": true,
+            "query_block": {
+              "select_id": 2,
+              "nested_loop": [
+                {
+                  "table": {
+                    "table_name": "nation",
+                    "access_type": "ALL",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "rows": 25,
+                    "filtered": 100,
+                    "attached_condition": "(`tpch`.`nation`.`N_NAME` = 'MOZAMBIQUE')"
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "supplier",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "SUPPLIER_FK1"
+                    ],
+                    "key": "SUPPLIER_FK1",
+                    "used_key_parts": [
+                      "S_NATIONKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.nation.N_NATIONKEY"
+                    ],
+                    "rows": 200,
+                    "filtered": 100,
+                    "using_index": true
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "partsupp",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PARTSUPP_FK1"
+                    ],
+                    "key": "PARTSUPP_FK1",
+                    "used_key_parts": [
+                      "PS_SUPPKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.supplier.S_SUPPKEY"
+                    ],
+                    "rows": 44,
+                    "filtered": 100
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}

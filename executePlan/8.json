@@ -1,0 +1,182 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "ordering_operation": {
+      "using_filesort": false,
+      "grouping_operation": {
+        "using_temporary_table": true,
+        "using_filesort": true,
+        "table": {
+          "table_name": "all_nations",
+          "access_type": "ALL",
+          "rows": 10,
+          "filtered": 100,
+          "materialized_from_subquery": {
+            "using_temporary_table": true,
+            "dependent": false,
+            "cacheable": true,
+            "query_block": {
+              "select_id": 2,
+              "nested_loop": [
+                {
+                  "table": {
+                    "table_name": "region",
+                    "access_type": "ALL",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "rows": 5,
+                    "filtered": 100,
+                    "attached_condition": "(`tpch`.`region`.`R_NAME` = 'ASIA')"
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "n1",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "NATION_FK1"
+                    ],
+                    "key": "NATION_FK1",
+                    "used_key_parts": [
+                      "N_REGIONKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.region.R_REGIONKEY"
+                    ],
+                    "rows": 2,
+                    "filtered": 100,
+                    "using_index": true
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "customer",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "CUSTOMER_FK1"
+                    ],
+                    "key": "CUSTOMER_FK1",
+                    "used_key_parts": [
+                      "C_NATIONKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.n1.N_NATIONKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100,
+                    "using_index": true
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "orders",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "ORDERS_FK1"
+                    ],
+                    "key": "ORDERS_FK1",
+                    "used_key_parts": [
+                      "O_CUSTKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.customer.C_CUSTKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100,
+                    "attached_condition": "(`tpch`.`orders`.`O_ORDERDATE` between DATE'1995-01-01' and DATE'1996-12-31')"
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "lineitem",
+                    "access_type": "ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "LINEITEM_FK2"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "L_ORDERKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.orders.O_ORDERKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "supplier",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY",
+                      "SUPPLIER_FK1"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "S_SUPPKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.lineitem.L_SUPPKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "n2",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "N_NATIONKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.supplier.S_NATIONKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100
+                  }
+                },
+                {
+                  "table": {
+                    "table_name": "part",
+                    "access_type": "eq_ref",
+                    "possible_keys": [
+                      "PRIMARY"
+                    ],
+                    "key": "PRIMARY",
+                    "used_key_parts": [
+                      "P_PARTKEY"
+                    ],
+                    "key_length": "4",
+                    "ref": [
+                      "tpch.lineitem.L_PARTKEY"
+                    ],
+                    "rows": 1,
+                    "filtered": 100,
+                    "attached_condition": "(`tpch`.`part`.`P_TYPE` = 'STANDARD BURNISHED NICKEL')"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}

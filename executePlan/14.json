@@ -1,0 +1,38 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "nested_loop": [
+      {
+        "table": {
+          "table_name": "part",
+          "access_type": "ALL",
+          "possible_keys": [
+            "PRIMARY"
+          ],
+          "rows": 197956,
+          "filtered": 100
+        }
+      },
+      {
+        "table": {
+          "table_name": "lineitem",
+          "access_type": "ref",
+          "possible_keys": [
+            "LINEITEM_FK2"
+          ],
+          "key": "LINEITEM_FK2",
+          "used_key_parts": [
+            "L_PARTKEY"
+          ],
+          "key_length": "4",
+          "ref": [
+            "tpch.part.P_PARTKEY"
+          ],
+          "rows": 1,
+          "filtered": 100,
+          "attached_condition": "((`tpch`.`lineitem`.`L_SHIPDATE` >= DATE'1994-09-01') and (`tpch`.`lineitem`.`L_SHIPDATE` < <cache>((DATE'1994-09-01' + interval '1' month))))"
+        }
+      }
+    ]
+  }
+}

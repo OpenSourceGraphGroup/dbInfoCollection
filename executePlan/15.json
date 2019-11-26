@@ -1,0 +1,35 @@
+{
+  "query_block": {
+    "select_id": 1,
+    "nested_loop": [
+      {
+        "table": {
+          "table_name": "lineitem",
+          "access_type": "ALL",
+          "rows": 5801894,
+          "filtered": 100,
+          "attached_condition": "((`tpch`.`lineitem`.`L_SHIPDATE` >= DATE'1997-09-01') and (`tpch`.`lineitem`.`L_SHIPDATE` < <cache>((DATE'1997-09-01' + interval '3' month))))"
+        }
+      },
+      {
+        "table": {
+          "table_name": "supplier",
+          "access_type": "eq_ref",
+          "possible_keys": [
+            "PRIMARY"
+          ],
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "S_SUPPKEY"
+          ],
+          "key_length": "4",
+          "ref": [
+            "tpch.lineitem.L_SUPPKEY"
+          ],
+          "rows": 1,
+          "filtered": 100
+        }
+      }
+    ]
+  }
+}
