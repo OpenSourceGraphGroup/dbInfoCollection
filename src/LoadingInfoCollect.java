@@ -12,7 +12,7 @@ import java.util.Map;
 public class LoadingInfoCollect {
     public static void main(String[] args) {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        String sql = String.format("explain %s", Common.getSql("sql/8.sql"));
+        String sql = String.format("explain %s", Common.getSql("sql/2.sql"));
         ResultSet resultSet = Common.query(connection, sql);
         try {
             ResultSetMetaData metaData = resultSet.getMetaData();
