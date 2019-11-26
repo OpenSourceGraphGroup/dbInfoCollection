@@ -62,4 +62,9 @@ public class Common {
             e.printStackTrace();
         }
     }
+
+    @SuppressWarnings("unchecked")
+    static <T> T cast(Object obj) {
+        return (T) obj;
+    }
 }

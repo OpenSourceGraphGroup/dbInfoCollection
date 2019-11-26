@@ -20,7 +20,7 @@ import java.util.*;
  * @Date: 2019/11/15
  */
 public class QueryTreeGenerator {
-    static int sqlIndex = 0;
+    private static int sqlIndex = 0;
 
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
@@ -28,7 +28,9 @@ public class QueryTreeGenerator {
             sqlIndex = i;
             Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
             QueryNode queryNode = generate(connection, Common.getSql("sql/" + i + ".sql"));
-            queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
+            if (queryNode != null) {
+                queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
+            }
             connection.close();
             System.out.println();
         }
@@ -42,7 +44,7 @@ public class QueryTreeGenerator {
      * @return
      * @throws JSQLParserException
      */
-    public static QueryNode generate(Connection connection, String sql) throws JSQLParserException {
+    static QueryNode generate(Connection connection, String sql) throws JSQLParserException {
         List<QueryPlan> queryPlan = queryPlanGenerate(connection, sql);
         Map<String, String> tableAlias = getTableAlias(sql);
         if (queryPlan.isEmpty()) return null;
@@ -107,7 +109,6 @@ public class QueryTreeGenerator {
         try {
             if (resultSet.next()) {
                 String planJson = resultSet.getObject(1).toString();
-                Common.writeTo(planJson, "executePlan/"+sqlIndex+".json");
                 Map<String, Object> json = new JSONObject(planJson).toMap();
                 List<QueryPlan> results = new ArrayList<>();
                 getPlan(json, results);
@@ -180,7 +181,7 @@ public class QueryTreeGenerator {
         if (Map.class.isAssignableFrom(object.getClass())) {
             Map map = (Map) object;
             if (map.containsKey("table")) {
-                plans.add(new QueryPlan((Map) (map.get("table"))));
+                plans.add(new QueryPlan(Common.cast(map.get("table"))));
             } else {
                 for (Object subObject : map.values()) {
                     getPlan(subObject, plans);
@@ -203,12 +204,11 @@ public class QueryTreeGenerator {
         List<QueryPlan> subQueries = new ArrayList<>();
 
         QueryPlan(Map<String, Object> object) {
-            ref = (ArrayList<String>) object.getOrDefault("ref", new ArrayList<>());
+            ref = Common.cast(object.getOrDefault("ref", new ArrayList<>()));
             key = object.getOrDefault("key", "").toString();
             tableName = object.containsKey("materialized_from_subquery") ? "derived" : object.getOrDefault("table_name", "").toString().replace("`", "");
             attachedCondition = object.getOrDefault("attached_condition", "").toString().replace("`", "").replace("<cache>", "");
-            usedColumns = (ArrayList<String>) object.getOrDefault("used_columns", new ArrayList<>());
-//            List subQueryJson = (List) object.getOrDefault("attached_subqueries", new ArrayList<>());
+            usedColumns = Common.cast(object.getOrDefault("used_columns", new ArrayList<>()));
             getPlan(object, subQueries);
         }
     }
