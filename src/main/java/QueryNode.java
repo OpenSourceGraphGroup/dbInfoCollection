@@ -1,5 +1,3 @@
-import java.util.List;
-
 /**
  * @Author:
  * @Description:
@@ -13,7 +11,7 @@ interface QueryNodeProcessor {
     void process(QueryNode queryNode);
 }
 
-public class QueryNode {
+class QueryNode {
     int count;
     NodeType nodeType;
     QueryNode parent;
@@ -61,17 +59,6 @@ public class QueryNode {
         processor.process(this);
     }
 
-    void postOrderNodes(List<QueryNode> nodes){
-        if(this.leftChild != null){
-            this.leftChild.postOrderNodes(nodes);
-        }
-        if(this.rightChild != null){
-            this.rightChild.postOrderNodes(nodes);
-        }
-
-        nodes.add(this);
-    }
-
     public QueryNode getParent() {
         return parent;
     }
@@ -104,5 +91,3 @@ public class QueryNode {
         this.condition = condition;
     }
 }
-
-
