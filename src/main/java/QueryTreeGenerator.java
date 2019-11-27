@@ -51,10 +51,9 @@ public class QueryTreeGenerator {
         Map<String, String> tableAlias = getTableAlias(sql);
         if (queryPlan.isEmpty()) return null;
         QueryPlan plan = queryPlan.get(0);
-        String tableName = tableAlias.getOrDefault(plan.tableName, plan.tableName);
         QueryNode queryNode = null;
-        if (!tableName.equals("derived")) {
-            String leafCondition = tableAlias.containsKey(plan.tableName) ? tableName + " " + plan.tableName : tableName;
+        if (!plan.tableName.equals("derived")) {
+            String leafCondition = tableAlias.containsKey(plan.tableName) ? tableAlias.get(plan.tableName) + " " + plan.tableName : plan.tableName;
             queryNode = new QueryNode(NodeType.LEAF_NODE, null, null, leafCondition);
             // Generate SELECT_NODE
             String selectCondition = attachedConditionProcess(plan.attachedCondition);
@@ -72,9 +71,8 @@ public class QueryTreeGenerator {
     private static QueryNode generate(List<QueryPlan> queryPlan, int start, Map<String, String> tableAlias, QueryNode queryNode) {
         for (int index = start; index < queryPlan.size(); index++) {
             QueryPlan plan = queryPlan.get(index);
-            String tableName = tableAlias.getOrDefault(plan.tableName, plan.tableName);
-            if (!tableName.equals("derived")) {
-                String leafCondition = tableAlias.containsKey(plan.tableName) ? tableName + " " + plan.tableName : tableName;
+            if (!plan.tableName.equals("derived")) {
+                String leafCondition = tableAlias.containsKey(plan.tableName) ? tableAlias.get(plan.tableName) + " " + plan.tableName : plan.tableName;
                 QueryNode newNode = new QueryNode(NodeType.LEAF_NODE, null, null, leafCondition);
 
                 if (queryNode != null) {
@@ -82,7 +80,7 @@ public class QueryTreeGenerator {
                     StringBuilder joinNodeCondition = new StringBuilder();
                     for (int i = 0; i < plan.ref.size(); i++) {
                         joinNodeCondition.append(plan.ref.get(i)).append(" = ")
-                                .append(tableName).append(".")
+                                .append(plan.tableName).append(".")
                                 .append(plan.usedKey.get(i));
                         if (i != plan.ref.size() - 1) joinNodeCondition.append(" and ");
                     }
