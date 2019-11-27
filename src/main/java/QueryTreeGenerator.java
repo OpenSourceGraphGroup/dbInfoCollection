@@ -20,7 +20,8 @@ import java.util.*;
  * @Date: 2019/11/15
  */
 public class QueryTreeGenerator {
-    private static int sqlIndex = 0;
+
+    private static int sqlIndex;
 
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
@@ -32,6 +33,7 @@ public class QueryTreeGenerator {
                 queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
             }
             connection.close();
+            System.out.println("SQL " + i + " Complete.");
             System.out.println();
         }
     }
@@ -52,47 +54,103 @@ public class QueryTreeGenerator {
         String tableName = tableAlias.getOrDefault(plan.tableName, plan.tableName);
         QueryNode queryNode = null;
         if (!tableName.equals("derived")) {
-            queryNode = new QueryNode(NodeType.LEAF_NODE, null, null, tableName);
+            String leafCondition = tableAlias.containsKey(plan.tableName) ? tableName + " " + plan.tableName : tableName;
+            queryNode = new QueryNode(NodeType.LEAF_NODE, null, null, leafCondition);
             // Generate SELECT_NODE
-            if (!plan.attachedCondition.equals("")) {
-                queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, plan.attachedCondition);
+            String selectCondition = attachedConditionProcess(plan.attachedCondition);
+            if (!selectCondition.equals("")) {
+                queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, selectCondition);
                 queryNode = queryNode.parent;
             }
         }
         if (!plan.subQueries.isEmpty()) {
-            queryNode = generate(connection, plan.subQueries, 0, tableAlias, queryNode);
+            queryNode = generate(plan.subQueries, 0, tableAlias, queryNode);
         }
-        return generate(connection, queryPlan, 1, tableAlias, queryNode);
+        return generate(queryPlan, 1, tableAlias, queryNode);
     }
 
-    private static QueryNode generate(Connection connection, List<QueryPlan> queryPlan, int start, Map<String, String> tableAlias, QueryNode queryNode) {
+    private static QueryNode generate(List<QueryPlan> queryPlan, int start, Map<String, String> tableAlias, QueryNode queryNode) {
         for (int index = start; index < queryPlan.size(); index++) {
             QueryPlan plan = queryPlan.get(index);
             String tableName = tableAlias.getOrDefault(plan.tableName, plan.tableName);
             if (!tableName.equals("derived")) {
-                QueryNode newNode = new QueryNode(NodeType.LEAF_NODE, null, null, tableName);
+                String leafCondition = tableAlias.containsKey(plan.tableName) ? tableName + " " + plan.tableName : tableName;
+                QueryNode newNode = new QueryNode(NodeType.LEAF_NODE, null, null, leafCondition);
 
                 if (queryNode != null) {
                     // Generate JOIN_NODE
-                    String joinNodeCondition = plan.ref.isEmpty() ? "" : plan.ref.get(0) + " = " + getJoinKey(connection, plan.key, tableName);
-                    newNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, joinNodeCondition);
+                    StringBuilder joinNodeCondition = new StringBuilder();
+                    for (int i = 0; i < plan.ref.size(); i++) {
+                        joinNodeCondition.append(plan.ref.get(i)).append(" = ")
+                                .append(tableName).append(".")
+                                .append(plan.usedKey.get(i));
+                        if (i != plan.ref.size() - 1) joinNodeCondition.append(" and ");
+                    }
+                    newNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, joinNodeCondition.toString());
                     queryNode = newNode.parent;
                 } else {
                     queryNode = newNode;
                 }
 
                 // Generate SELECT_NODE
-                if (!plan.attachedCondition.equals("")) {
-                    queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, plan.attachedCondition);
+                String selectCondition = attachedConditionProcess(plan.attachedCondition);
+                if (!selectCondition.equals("")) {
+                    queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, selectCondition);
                     queryNode = queryNode.parent;
                 }
             }
 
             if (!plan.subQueries.isEmpty()) {
-                queryNode = generate(connection, plan.subQueries, 0, tableAlias, queryNode);
+                queryNode = generate(plan.subQueries, 0, tableAlias, queryNode);
             }
         }
         return queryNode;
+    }
+
+    private static String attachedConditionProcess(String attachedCondition) {
+        int select2Position = attachedCondition.indexOf("select#2");
+        if (select2Position != -1) {
+            int position = attachedCondition.lastIndexOf(" and ", select2Position);
+            if (position == -1) position = attachedCondition.lastIndexOf(" or ", select2Position);
+            if (position == -1) return "";
+            int pCount = 0;
+            StringBuilder result = new StringBuilder(attachedCondition.substring(0, position));
+            for (int i = position; i < attachedCondition.length(); i++) {
+                if (attachedCondition.charAt(i) == '(') {
+                    pCount++;
+                } else if (attachedCondition.charAt(i) == ')') {
+                    if (pCount == 1) {
+                        result.append(attachedCondition.substring(i + 1));
+                    } else {
+                        pCount--;
+                    }
+                }
+            }
+            attachedCondition = result.toString();
+        }
+        int ifPosition = attachedCondition.indexOf("<if>");
+        if (ifPosition != -1) {
+            StringBuilder result = new StringBuilder(attachedCondition.substring(0, ifPosition));
+            int leftCommasPos = attachedCondition.indexOf(",", ifPosition) + 2;
+            int endPos = -1;
+            int pCount = 0;
+            for (int i = ifPosition; i < attachedCondition.length(); i++) {
+                if (attachedCondition.charAt(i) == '(') {
+                    pCount++;
+                } else if (attachedCondition.charAt(i) == ')') {
+                    if (pCount == 1) {
+                        endPos = i;
+                        break;
+                    } else {
+                        pCount--;
+                    }
+                }
+            }
+            int rightCommasPos = attachedCondition.lastIndexOf(",", endPos);
+            result.append(attachedCondition, leftCommasPos, rightCommasPos).append(attachedCondition.substring(endPos + 1));
+            attachedCondition = result.toString();
+        }
+        return attachedCondition;
     }
 
 
@@ -109,6 +167,7 @@ public class QueryTreeGenerator {
         try {
             if (resultSet.next()) {
                 String planJson = resultSet.getObject(1).toString();
+//        String planJson = Common.getSql("executePlan/" + sqlIndex + ".json").replace("\r\n", "");
                 Map<String, Object> json = new JSONObject(planJson).toMap();
                 List<QueryPlan> results = new ArrayList<>();
                 getPlan(json, results);
@@ -154,37 +213,15 @@ public class QueryTreeGenerator {
         return condition;
     }
 
-    /**
-     * Get join key in 'tableName' whose index column is 'indexName'
-     *
-     * @param connection
-     * @param indexName
-     * @param tableName
-     * @return
-     */
-    private static String getJoinKey(Connection connection, String indexName, String tableName) {
-        String sql = String.format("select * from INFORMATION_SCHEMA.STATISTICS WHERE INDEX_NAME = '%s' and TABLE_NAME = '%s'", indexName, tableName);
-        try {
-            ResultSet resultSet = Common.query(connection, sql);
-            if (resultSet.next()) {
-                String schemaName = resultSet.getString("TABLE_SCHEMA");
-                String columnName = resultSet.getString("COLUMN_NAME");
-                return String.format("%s.%s.%s", schemaName, tableName, columnName);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "";
-    }
-
     private static void getPlan(Object object, List<QueryPlan> plans) {
         if (Map.class.isAssignableFrom(object.getClass())) {
             Map map = (Map) object;
             if (map.containsKey("table")) {
                 plans.add(new QueryPlan(Common.cast(map.get("table"))));
             } else {
-                for (Object subObject : map.values()) {
-                    getPlan(subObject, plans);
+                for (Object key : map.keySet()) {
+                    if (!key.equals("optimized_away_subqueries"))
+                        getPlan(map.get(key), plans);
                 }
             }
         } else if (List.class.isAssignableFrom(object.getClass())) {
@@ -199,12 +236,14 @@ public class QueryTreeGenerator {
         String tableName;
         String key;
         List<String> ref;
+        List<String> usedKey;
         String attachedCondition;
         List<String> usedColumns;
         List<QueryPlan> subQueries = new ArrayList<>();
 
         QueryPlan(Map<String, Object> object) {
             ref = Common.cast(object.getOrDefault("ref", new ArrayList<>()));
+            usedKey = Common.cast(object.getOrDefault("used_key_parts", new ArrayList<>()));
             key = object.getOrDefault("key", "").toString();
             tableName = object.containsKey("materialized_from_subquery") ? "derived" : object.getOrDefault("table_name", "").toString().replace("`", "");
             attachedCondition = object.getOrDefault("attached_condition", "").toString().replace("`", "").replace("<cache>", "");
