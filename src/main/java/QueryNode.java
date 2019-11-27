@@ -18,6 +18,7 @@ class QueryNode {
     QueryNode leftChild;
     QueryNode rightChild;
     String condition;
+    String sql;
 
     public QueryNode(NodeType type, String condition) {
         this.count = 0;
@@ -26,6 +27,7 @@ class QueryNode {
         this.leftChild = null;
         this.rightChild = null;
         this.condition = condition;
+        this.sql = "";
     }
 
     QueryNode(NodeType nodeType, QueryNode leftChild, QueryNode rightChild, String condition) {
@@ -89,5 +91,13 @@ class QueryNode {
 
     public void setCondition(String condition) {
         this.condition = condition;
+    }
+
+    public String getSql(){
+        return sql;
+    }
+
+    public void setSql(String sql){
+        this.sql = sql;
     }
 }

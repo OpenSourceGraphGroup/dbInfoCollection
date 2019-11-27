@@ -118,13 +118,13 @@ public class ComputingTree {
     }
 
     public void updateCount(Connection connection, QueryNode node, String sql) throws SQLException {
-        System.out.println(sql);
         ResultSet resultSet = Common.query(connection, sql);
         int count = 0;
         if (resultSet.next()) {
             count = resultSet.getInt(1);
         }
         node.setCount(count);
+        node.setSql(sql);
     }
 
     public void computingSqlUpadteCount(Connection connection, QueryNode root) throws SQLException {
@@ -149,9 +149,13 @@ public class ComputingTree {
         if (rightChild != null) {
             printInfo(rightChild);
         }
-        int count = node.getCount();
+        NodeType type = node.getNodeType();
+        String sql = node.getSql();
         String condition = node.getCondition();
-        System.out.println("Node " + "condition: " + condition + "count: " + count);
+        int count = node.getCount();
+        System.out.println("Node " + "#type: " + type + " #sql: " + sql);
+        System.out.println("Node " + "#condi: " + condition + " #count: " + count);
+        System.out.println();
     }
 
     String combineList(List<String> list, String sep) {
@@ -170,11 +174,9 @@ public class ComputingTree {
     @Test
     public void testComputingTree() throws SQLException, JSQLParserException {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/1.sql"));
+        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/7.sql"));
         root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
         ComputingTree ct = new ComputingTree();
-
-//        QueryNode root = ct.test1();
         ct.computingSqlUpadteCount(connection, root);
         ct.printInfo(root);
     }
