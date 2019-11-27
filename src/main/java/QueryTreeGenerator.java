@@ -13,6 +13,8 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * @Author: XinJin
@@ -25,7 +27,7 @@ public class QueryTreeGenerator {
 
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
-        for (int i = 1; i < 17; i++) {
+        for (int i = 16; i < 17; i++) {
             sqlIndex = i;
             Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
             QueryNode queryNode = generate(connection, Common.getSql("sql/" + i + ".sql"));
@@ -74,35 +76,65 @@ public class QueryTreeGenerator {
             if (!plan.tableName.equals("derived")) {
                 String leafCondition = tableAlias.containsKey(plan.tableName) ? tableAlias.get(plan.tableName) + " " + plan.tableName : plan.tableName;
                 QueryNode newNode = new QueryNode(NodeType.LEAF_NODE, null, null, leafCondition);
-
-                if (queryNode != null) {
-                    // Generate JOIN_NODE
-                    StringBuilder joinNodeCondition = new StringBuilder();
-                    for (int i = 0; i < plan.ref.size(); i++) {
-                        joinNodeCondition.append(plan.ref.get(i)).append(" = ")
-                                .append(plan.tableName).append(".")
-                                .append(plan.usedKey.get(i));
-                        if (i != plan.ref.size() - 1) joinNodeCondition.append(" and ");
+                if (plan.ref.size() > 0) {
+                    if (queryNode != null) {
+                        // Generate JOIN_NODE
+                        StringBuilder joinNodeCondition = new StringBuilder();
+                        for (int i = 0; i < plan.ref.size(); i++) {
+                            joinNodeCondition.append(plan.ref.get(i)).append(" = ")
+                                    .append(plan.tableName).append(".")
+                                    .append(plan.usedKey.get(i));
+                            if (i != plan.ref.size() - 1) joinNodeCondition.append(" and ");
+                        }
+                        newNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, joinNodeCondition.toString());
+                        queryNode = newNode.parent;
+                    } else {
+                        queryNode = newNode;
                     }
-                    newNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, joinNodeCondition.toString());
-                    queryNode = newNode.parent;
-                } else {
-                    queryNode = newNode;
-                }
 
-                // Generate SELECT_NODE
-                String selectCondition = attachedConditionProcess(plan.attachedCondition);
-                if (!selectCondition.equals("")) {
-                    queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, selectCondition);
+                    // Generate SELECT_NODE
+                    String selectCondition = attachedConditionProcess(plan.attachedCondition);
+                    if (!selectCondition.equals("")) {
+                        queryNode.parent = new QueryNode(NodeType.SELECT_NODE, queryNode, null, selectCondition);
+                        queryNode = queryNode.parent;
+                    }
+                } else {
+                    // Generate SELECT_NODE
+                    String selectCondition = attachedConditionProcess(plan.attachedCondition);
+                    if (!selectCondition.equals("")) {
+                        newNode.parent = new QueryNode(NodeType.SELECT_NODE, newNode, null, selectCondition);
+                        newNode = newNode.parent;
+                    }
+                    queryNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, "");
                     queryNode = queryNode.parent;
                 }
             }
 
             if (!plan.subQueries.isEmpty()) {
                 queryNode = generate(plan.subQueries, 0, tableAlias, queryNode);
+                if (!queryNode.rightChild.nodeType.equals(NodeType.LEAF_NODE)) {
+                    queryNode.condition = attachedJoinConditionProcess(plan.attachedCondition);
+                }
             }
         }
         return queryNode;
+    }
+
+    private static String attachedJoinConditionProcess(String attachedCondition) {
+        if (attachedCondition.equals("")) return attachedCondition;
+//        attachedCondition = attachedCondition.replaceAll(" <.+?> ", "").replaceAll("/\\*.*\\*/ ", "");
+        Pattern pattern = Pattern.compile("(.*) <.+?> \\((.*)\\)(.*)");
+        Matcher matcher = pattern.matcher(attachedCondition);
+        if (matcher.find()) {
+            attachedCondition = matcher.group(1) + matcher.group(2) + matcher.group(3);
+        }
+        pattern = Pattern.compile("(not\\().*,(.*),.*(\\))");
+        matcher = pattern.matcher(attachedCondition);
+        if (matcher.find()) {
+            attachedCondition = matcher.group(1) + matcher.group(2) + matcher.group(3);
+        }
+        attachedCondition = attachedCondition.replaceAll("/\\*.*\\*/ ", "");
+        return attachedCondition;
     }
 
     private static String attachedConditionProcess(String attachedCondition) {
