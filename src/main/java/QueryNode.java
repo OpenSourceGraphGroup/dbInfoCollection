@@ -1,3 +1,5 @@
+import java.util.List;
+
 /**
  * @Author:
  * @Description:
@@ -59,6 +61,17 @@ class QueryNode {
         if (rightChild != null)
             rightChild.postOrder(processor);
         processor.process(this);
+    }
+
+    void postOrderNodes(List<QueryNode> nodes){
+        if(this.leftChild != null){
+            this.leftChild.postOrderNodes(nodes);
+        }
+        if(this.rightChild != null){
+            this.rightChild.postOrderNodes(nodes);
+        }
+
+        nodes.add(this);
     }
 
     public QueryNode getParent() {
