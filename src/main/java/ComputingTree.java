@@ -12,7 +12,7 @@ public class ComputingTree {
         if (leftChild != null) {
             getAllInfomation(leafInfo, selectInfo, joinInfo, leftChild);
         }
-        if (rightChild != null) {
+        if (rightChild != null && !(node.getNodeType() == NodeType.JOIN_NODE && !node.getCondition().contains("="))) {
             getAllInfomation(leafInfo, selectInfo, joinInfo, rightChild);
         }
         String info = node.getCondition();
@@ -124,7 +124,7 @@ public class ComputingTree {
     @Test
     public void testComputingTree() throws SQLException, JSQLParserException {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/15.sql"), "tpch");
+        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/2.sql"), "tpch");
         if (root != null) {
             root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
             ComputingTree.computingSqlUpadteCount(connection, root);
