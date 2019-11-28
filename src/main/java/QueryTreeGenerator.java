@@ -22,15 +22,11 @@ import java.util.regex.Pattern;
  * @Date: 2019/11/15
  */
 public class QueryTreeGenerator {
-
-    private static int sqlIndex;
-
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
         for (int i = 1; i < 17; i++) {
-            sqlIndex = i;
             Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-            QueryNode queryNode = generate(connection, Common.getSql("sql/" + i + ".sql"));
+            QueryNode queryNode = generate(connection, Common.getSql("sql/" + i + ".sql"), "tpch");
             if (queryNode != null) {
                 queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
             }
@@ -48,7 +44,7 @@ public class QueryTreeGenerator {
      * @return
      * @throws JSQLParserException
      */
-    static QueryNode generate(Connection connection, String sql) throws JSQLParserException {
+    static QueryNode generate(Connection connection, String sql, String dbName) throws JSQLParserException {
         List<QueryPlan> queryPlan = queryPlanGenerate(connection, sql);
         Map<String, String> tableAlias = getTableAlias(sql);
         if (queryPlan.isEmpty()) return null;
@@ -65,12 +61,12 @@ public class QueryTreeGenerator {
             }
         }
         if (!plan.subQueries.isEmpty()) {
-            queryNode = generate(plan.subQueries, 0, tableAlias, queryNode);
+            queryNode = generate(plan.subQueries, 0, tableAlias, queryNode, dbName);
         }
-        return generate(queryPlan, 1, tableAlias, queryNode);
+        return generate(queryPlan, 1, tableAlias, queryNode, dbName);
     }
 
-    private static QueryNode generate(List<QueryPlan> queryPlan, int start, Map<String, String> tableAlias, QueryNode queryNode) {
+    private static QueryNode generate(List<QueryPlan> queryPlan, int start, Map<String, String> tableAlias, QueryNode queryNode, String dbName) {
         for (int index = start; index < queryPlan.size(); index++) {
             QueryPlan plan = queryPlan.get(index);
             if (!plan.tableName.equals("derived")) {
@@ -82,6 +78,7 @@ public class QueryTreeGenerator {
                         StringBuilder joinNodeCondition = new StringBuilder();
                         for (int i = 0; i < plan.ref.size(); i++) {
                             joinNodeCondition.append(plan.ref.get(i)).append(" = ")
+                                    .append(dbName).append(".")
                                     .append(plan.tableName).append(".")
                                     .append(plan.usedKey.get(i));
                             if (i != plan.ref.size() - 1) joinNodeCondition.append(" and ");
@@ -115,7 +112,7 @@ public class QueryTreeGenerator {
             }
 
             if (!plan.subQueries.isEmpty()) {
-                queryNode = generate(plan.subQueries, 0, tableAlias, queryNode);
+                queryNode = generate(plan.subQueries, 0, tableAlias, queryNode, dbName);
                 if (queryNode.rightChild != null && !queryNode.rightChild.nodeType.equals(NodeType.LEAF_NODE)) {
                     queryNode.condition = attachedJoinConditionProcess(plan.attachedCondition);
                 }
