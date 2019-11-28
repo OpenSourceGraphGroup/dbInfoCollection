@@ -27,7 +27,7 @@ public class QueryTreeGenerator {
 
     @Test
     public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
-        for (int i = 16; i < 17; i++) {
+        for (int i = 1; i < 17; i++) {
             sqlIndex = i;
             Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
             QueryNode queryNode = generate(connection, Common.getSql("sql/" + i + ".sql"));
@@ -105,14 +105,18 @@ public class QueryTreeGenerator {
                         newNode.parent = new QueryNode(NodeType.SELECT_NODE, newNode, null, selectCondition);
                         newNode = newNode.parent;
                     }
-                    queryNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, "");
-                    queryNode = queryNode.parent;
+                    if (queryNode != null) {
+                        queryNode.parent = new QueryNode(NodeType.JOIN_NODE, queryNode, newNode, "");
+                        queryNode = queryNode.parent;
+                    } else {
+                        queryNode = newNode;
+                    }
                 }
             }
 
             if (!plan.subQueries.isEmpty()) {
                 queryNode = generate(plan.subQueries, 0, tableAlias, queryNode);
-                if (!queryNode.rightChild.nodeType.equals(NodeType.LEAF_NODE)) {
+                if (queryNode.rightChild != null && !queryNode.rightChild.nodeType.equals(NodeType.LEAF_NODE)) {
                     queryNode.condition = attachedJoinConditionProcess(plan.attachedCondition);
                 }
             }
