@@ -45,7 +45,7 @@ public class MyTest {
     public void testConstraintList() throws Exception{
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
 
-        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/5.sql"));
+        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/2.sql"), "tpch");
         root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
         ComputingTree ct = new ComputingTree();
         ct.computingSqlUpadteCount(connection, root);
