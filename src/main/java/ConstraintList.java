@@ -4,8 +4,6 @@ import java.util.*;
 
 public class ConstraintList {
     private Connection connection;
-    private JoinInfo joinInfo;
-    private SelectInfo selectInfo;
     private Map<String, Integer> tableMap = new HashMap<>();
     private List<String> tableConstraints = new LinkedList<>();
     private int index = 0;
@@ -18,22 +16,6 @@ public class ConstraintList {
 
     public void setConnection(Connection connection) {
         this.connection = connection;
-    }
-
-    public JoinInfo getJoinInfo() {
-        return joinInfo;
-    }
-
-    public void setJoinInfo(JoinInfo joinInfo) {
-        this.joinInfo = joinInfo;
-    }
-
-    public SelectInfo getSelectInfo() {
-        return selectInfo;
-    }
-
-    public void setSelectInfo(SelectInfo selectInfo) {
-        this.selectInfo = selectInfo;
     }
 
     public Map<String, Integer> getTableMap() {
@@ -70,8 +52,6 @@ public class ConstraintList {
 
     public ConstraintList(Connection connection) {
         this.connection = connection;
-        joinInfo = new JoinInfo(this.connection);
-        selectInfo = new SelectInfo();
     }
 
     public List<String> getConstraintList(QueryNode root) throws Exception {
@@ -84,7 +64,7 @@ public class ConstraintList {
 
         for (QueryNode node : queryNodeList) {
             double filterRate = 0;
-            if (node.parent != null && node.parent.count != 0) {
+            if (node.parent != null && node.count != 0) {
                 filterRate = (double) node.parent.count / (double) node.count;
             }
             if (node.nodeType == NodeType.LEAF_NODE) {
@@ -105,7 +85,7 @@ public class ConstraintList {
                         // join as primary key or foreigin key
                         parseParentJoin(node, filterRate);
                     } else {
-                        System.out.println("I think there must be sth wrong with the parsed tree, where there exists " +
+                        throw new Exception("I think there must be sth wrong with the parsed tree, where there exists " +
                                 "a SELECT NODE whose parent node is also a SELECT NODE");
                     }
                 }
@@ -116,7 +96,7 @@ public class ConstraintList {
                     } else if (node.parent.nodeType == NodeType.SELECT_NODE) {
                         parseParentSelect(node, filterRate);
                     } else {
-                        System.out.println("I think there must be sth wrong with the parsed tree, where there exists " +
+                        throw new Exception("I think there must be sth wrong with the parsed tree, where there exists " +
                                 "a JOIN NODE whose parent node is a LEAF NODE");
                     }
                 }
@@ -126,6 +106,7 @@ public class ConstraintList {
     }
 
     private void parseParentSelect(QueryNode node, double filterRate) throws Exception {
+        SelectInfo selectInfo = new SelectInfo();
         selectInfo.parseSelectNodeWhereOps(node.parent.condition);
         String whereOps = selectInfo.getParsedWhereOps();
         String tableName = selectInfo.getTableName();
@@ -136,50 +117,88 @@ public class ConstraintList {
     }
 
     private void parseParentJoin(QueryNode node, double filterRate) throws Exception {
+        JoinInfo joinInfo = new JoinInfo(connection);
         joinInfo.parseJoinInfo(node.parent.condition);
-        String tableOneName = joinInfo.getTableOne();
-        String tableTwoName = joinInfo.getTableTwo();
-        int idxOne = updateIdx(tableOneName);
-        int idxTwo = updateIdx(tableTwoName);
-        String tableOneConstraintStr = tableConstraints.get(idxOne);
-        String tableTwoConstraintStr = tableConstraints.get(idxTwo);
-        if (joinInfo.isTableOneUsingPK()) {
-            tableOneConstraintStr = updateConstraintStr(idxOne, tableOneConstraintStr, true);
-            int start = 2 * (joinCount.get(idxOne) - 1);
 
-            tableTwoConstraintStr += "; [2, " + joinInfo.getTableTwoJoinAttribute() + ", "
-                    + filterRate + ", " + joinInfo.getTableOne() + "." + joinInfo.getTableOneJoinAttribute() +
-                    ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
-        } else {
-            tableTwoConstraintStr = updateConstraintStr(idxTwo, tableTwoConstraintStr, false);
-            int start = 2 * (joinCount.get(idxTwo) - 1);
+        Set<String> keySet = joinInfo.getTableAttributeMap().keySet();
+        List<String> keys = new ArrayList<>(keySet);
 
-            tableOneConstraintStr += "; [2, " + joinInfo.getTableOneJoinAttribute() + ", "
-                    + filterRate + ", " + joinInfo.getTableTwo() + "." + joinInfo.getTableTwoJoinAttribute() +
-                    ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
+        if(keys.size() != 2){
+            throw new Exception("Parse Join Node error!");
         }
-        tableConstraints.set(idxOne, tableOneConstraintStr);
-        tableConstraints.set(idxTwo, tableTwoConstraintStr);
+        // we will parse join key table first to record the joinCount info which will be used later in fk join table
+        if(joinInfo.getIsPrimaryKeyInfoMap().get(keys.get(1))){
+            String tmpKey = keys.get(0);
+            keys.set(0, keys.get(1));
+            keys.set(1, tmpKey);
+        }
+        int pkIdx = updateIdx(keys.get(0));
+        for(String tableName: keys) {
+            int idx = updateIdx(tableName);
+            List<String> attributes = joinInfo.getTableAttributeMap().get(tableName);
+            String tableConstraintStr = tableConstraints.get(idx);
+            if (joinInfo.getIsPrimaryKeyInfoMap().containsKey(tableName)) {
+                if (joinInfo.getIsPrimaryKeyInfoMap().get(tableName)) {
+                    tableConstraintStr = updateConstraintStrPK(idx, attributes, tableConstraintStr);
+                } else {
+                    int start = 2 * (joinCount.get(pkIdx) - 1);
+                    StringBuilder fkAttributes = new StringBuilder();
+                    for (String attr : attributes) {
+                        fkAttributes.append(attr).append("#");
+                    }
+                    fkAttributes.deleteCharAt(fkAttributes.length() - 1);
+
+                    StringBuilder fkRefAttributes = new StringBuilder();
+                    for (String attr : attributes) {
+                        fkRefAttributes.append(joinInfo.getFkReferenceMap().get(tableName + "." + attr)).append("#");
+                    }
+                    fkRefAttributes.deleteCharAt(fkRefAttributes.length() - 1);
+
+                    tableConstraintStr += "; [2, " + fkAttributes + ", " + filterRate + ", " + fkRefAttributes +
+                            ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
+                }
+                tableConstraints.set(idx, tableConstraintStr);
+            } else {
+                System.out.println("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!");
+            }
+        }
     }
 
-    private String updateConstraintStr(int idx, String tableConstraintStr, boolean isFirstTable) {
+    private String updateConstraintStrPK(int idx, List<String> attributes,
+                                         String tableConstraintStr) {
         if (!joinCount.containsKey(idx)) {
             joinCount.put(idx, 1);
-            String attribute;
-            if (isFirstTable) {
-                attribute = joinInfo.getTableOneJoinAttribute();
-            } else {
-                attribute = joinInfo.getTableTwoJoinAttribute();
+            StringBuilder attributesStr = new StringBuilder();
+            for (String attr : attributes) {
+                attributesStr.append(attr).append("#");
             }
-            tableConstraintStr += "; [1, " + attribute + ", 1, 2]";
+            attributesStr.deleteCharAt(attributesStr.length() - 1);
+            tableConstraintStr += "; [1, " + attributesStr + ", 1, 2]";
         } else {
             int count = joinCount.get(idx);
             count++;
             joinCount.put(idx, count);
-            tableConstraintStr = tableConstraintStr.substring(0, tableConstraintStr.length() - 1);
+            int pkConstraintidx = tableConstraintStr.indexOf("[1,");
+            String firstStr = tableConstraintStr.substring(0, pkConstraintidx);
+            String secondStr = tableConstraintStr.substring(pkConstraintidx);
 
+            // get cur constraint str
+            String tmp = secondStr.split(";")[0];
+            String curConstraintStr = tmp.substring(0, tmp.length() - 1);
             int start = 2 * (count - 1);
-            tableConstraintStr += ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
+            curConstraintStr += ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
+
+            // insert new pk attribute by replacing the original
+            String attr = curConstraintStr.split(",")[1].trim();
+            StringBuilder attrMut = new StringBuilder(attr);
+            for (String attribute : attributes) {
+                if (!attr.contains(attribute)) {
+                    attrMut.append("#").append(attribute);
+                }
+            }
+            curConstraintStr = curConstraintStr.replace(attr, attrMut);
+            secondStr = secondStr.replace(tmp, curConstraintStr);
+            tableConstraintStr = firstStr + secondStr;
         }
         return tableConstraintStr;
     }
@@ -193,5 +212,4 @@ public class ConstraintList {
         }
         return idx;
     }
-
 }

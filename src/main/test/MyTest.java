@@ -45,7 +45,7 @@ public class MyTest {
     public void testConstraintList() throws Exception{
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
 
-        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/5.sql"), "tpch");
+        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/2.sql"), "tpch");
         root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
         ComputingTree ct = new ComputingTree();
         ct.computingSqlUpadteCount(connection, root);
@@ -55,5 +55,14 @@ public class MyTest {
         for(String output: constraintList.getTableConstraints()){
             System.out.println(output);
         }
+    }
+
+    @Test
+    public void testStrSplit(){
+        String a = "[0, A, 2]; [1, A#B, 1, 2]; [2, A, 3]";
+        int idx = a.indexOf("; [1,");
+        String tmp = a.substring(idx);
+
+        System.out.println(tmp.split(";")[1]);
     }
 }
