@@ -1,7 +1,5 @@
-import net.sf.jsqlparser.JSQLParserException;
-
 import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.Scanner;
 
 /**
  * @Author:
@@ -9,13 +7,24 @@ import java.sql.SQLException;
  * @Date: 2019/11/14
  */
 public class LoadingInfoCollect {
-    public static void main(String[] args) throws JSQLParserException, SQLException {
-        Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/15.sql"), "tpch");
-        if(root!=null) {
+    public static void main(String[] args) throws Exception {
+        Scanner scanner = new Scanner(System.in);
+        while (true) {
+            System.out.println("Please input the query name(type E to exit): ");
+            String q = scanner.next();
+            if(q.trim().equals("E")){
+                return;
+            }
+            Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
+            QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/" + q + ".sql"), "tpch");
             root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
             ComputingTree.computingSqlUpadteCount(connection, root);
-            ComputingTree.printInfo(root);
+
+            ConstraintList constraintList = new ConstraintList(connection);
+            constraintList.getConstraintList(root);
+            for (String output : constraintList.getTableConstraints()) {
+                System.out.println(output);
+            }
         }
     }
 }

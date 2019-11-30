@@ -6,6 +6,7 @@ public class ConstraintList {
     private Connection connection;
     private Map<String, Integer> tableMap = new HashMap<>();
     private List<String> tableConstraints = new LinkedList<>();
+    private Set<String> parsedConditions = new HashSet<>();
     private int index = 0;
 
     private Map<Integer, Integer> joinCount = new HashMap<>();
@@ -106,62 +107,91 @@ public class ConstraintList {
     }
 
     private void parseParentSelect(QueryNode node, double filterRate) throws Exception {
-        SelectInfo selectInfo = new SelectInfo();
-        selectInfo.parseSelectNodeWhereOps(node.parent.condition);
-        String whereOps = selectInfo.getParsedWhereOps();
-        String tableName = selectInfo.getTableName();
-        int idx = updateIdx(tableName);
-        String tableConstraintStr = tableConstraints.get(idx) + "; [0, " + whereOps +
-                ", " + filterRate + "]";
-        tableConstraints.set(idx, tableConstraintStr);
+        if(!ifConditionParsed(node.parent.condition)) {
+            SelectInfo selectInfo = new SelectInfo();
+            selectInfo.parseSelectNodeWhereOps(node.parent.condition);
+            String whereOps = selectInfo.getParsedWhereOps();
+            String tableName = selectInfo.getTableName();
+            int idx = updateIdx(tableName);
+            String tableConstraintStr = tableConstraints.get(idx) + "; [0, " + whereOps +
+                    ", " + filterRate + "]";
+            tableConstraints.set(idx, tableConstraintStr);
+        }
+    }
+
+    private boolean ifConditionParsed(String condition){
+        if(!this.parsedConditions.contains(condition)){
+            this.parsedConditions.add(condition);
+            return false;
+        }else{
+            return true;
+        }
     }
 
     private void parseParentJoin(QueryNode node, double filterRate) throws Exception {
-        JoinInfo joinInfo = new JoinInfo(connection);
-        joinInfo.parseJoinInfo(node.parent.condition);
+        if(!ifConditionParsed(node.parent.condition)) {
+            JoinInfo joinInfo = new JoinInfo(connection);
+            joinInfo.parseJoinInfo(node.parent.condition);
 
-        Set<String> keySet = joinInfo.getTableAttributeMap().keySet();
-        List<String> keys = new ArrayList<>(keySet);
+            Set<String> keySet = joinInfo.getTableAttributeMap().keySet();
+            List<String> keys = new ArrayList<>(keySet);
 
-        if(keys.size() != 2){
-            throw new Exception("Parse Join Node error!");
-        }
-        // we will parse join key table first to record the joinCount info which will be used later in fk join table
-        if(joinInfo.getIsPrimaryKeyInfoMap().get(keys.get(1))){
-            String tmpKey = keys.get(0);
-            keys.set(0, keys.get(1));
-            keys.set(1, tmpKey);
-        }
-        int pkIdx = updateIdx(keys.get(0));
-        for(String tableName: keys) {
-            int idx = updateIdx(tableName);
-            List<String> attributes = joinInfo.getTableAttributeMap().get(tableName);
-            String tableConstraintStr = tableConstraints.get(idx);
-            if (joinInfo.getIsPrimaryKeyInfoMap().containsKey(tableName)) {
-                if (joinInfo.getIsPrimaryKeyInfoMap().get(tableName)) {
-                    tableConstraintStr = updateConstraintStrPK(idx, attributes, tableConstraintStr);
-                } else {
-                    int start = 2 * (joinCount.get(pkIdx) - 1);
-                    StringBuilder fkAttributes = new StringBuilder();
-                    for (String attr : attributes) {
-                        fkAttributes.append(attr).append("#");
+            if (keys.size() != 2) {
+                throw new Exception("Parse Join Node error!");
+            }
+            // we will parse join key table first to record the joinCount info which will be used later in fk join table
+            if (joinInfo.getKeyInfoMap().get(keys.get(1)) == KeyType.PK) {
+                String tmpKey = keys.get(0);
+                keys.set(0, keys.get(1));
+                keys.set(1, tmpKey);
+            }
+            int pkIdx = updateIdx(keys.get(0));
+            for (int i = 0; i < 2; i++) {
+                String tableName = keys.get(i);
+                boolean isAnotherFK = true;
+                if (i == 0) {
+                    String anotherTableName = keys.get(1);
+                    if (joinInfo.getKeyInfoMap().get(anotherTableName) != KeyType.FK) {
+                        isAnotherFK = false;
                     }
-                    fkAttributes.deleteCharAt(fkAttributes.length() - 1);
-
-                    StringBuilder fkRefAttributes = new StringBuilder();
-                    for (String attr : attributes) {
-                        fkRefAttributes.append(joinInfo.getFkReferenceMap().get(tableName + "." + attr)).append("#");
-                    }
-                    fkRefAttributes.deleteCharAt(fkRefAttributes.length() - 1);
-
-                    tableConstraintStr += "; [2, " + fkAttributes + ", " + filterRate + ", " + fkRefAttributes +
-                            ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
                 }
-                tableConstraints.set(idx, tableConstraintStr);
-            } else {
-                System.out.println("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!");
+                int idx = updateIdx(tableName);
+                List<String> attributes = joinInfo.getTableAttributeMap().get(tableName);
+                String tableConstraintStr = tableConstraints.get(idx);
+                if (joinInfo.getKeyInfoMap().containsKey(tableName)) {
+                    if (joinInfo.getKeyInfoMap().get(tableName) == KeyType.PK && isAnotherFK) {
+                        tableConstraintStr = updateConstraintStrPK(idx, attributes, tableConstraintStr);
+                    } else {
+                        tableConstraintStr = updateConstraintFK(filterRate, joinInfo, pkIdx, tableName, attributes, tableConstraintStr);
+                    }
+                    tableConstraints.set(idx, tableConstraintStr);
+                } else {
+                    System.out.println("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!");
+                }
             }
         }
+    }
+
+    private String updateConstraintFK(double filterRate, JoinInfo joinInfo,
+                                      int pkIdx, String tableName, List<String> attributes,
+                                      String tableConstraintStr) {
+        int start = 2 * (joinCount.get(pkIdx) - 1);
+        StringBuilder fkAttributes = new StringBuilder();
+        for (String attr : attributes) {
+            fkAttributes.append(attr).append("#");
+        }
+        fkAttributes.deleteCharAt(fkAttributes.length() - 1);
+
+        StringBuilder fkRefAttributes = new StringBuilder();
+        for (String attr : attributes) {
+            fkRefAttributes.append(joinInfo.getFkReferenceMap().get(tableName + "." + attr)).append("#");
+        }
+        fkRefAttributes.deleteCharAt(fkRefAttributes.length() - 1);
+
+        tableConstraintStr += "; [2, " + fkAttributes + ", " + filterRate + ", " + fkRefAttributes +
+                ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
+
+        return tableConstraintStr;
     }
 
     private String updateConstraintStrPK(int idx, List<String> attributes,
@@ -178,15 +208,16 @@ public class ConstraintList {
             int count = joinCount.get(idx);
             count++;
             joinCount.put(idx, count);
-            int pkConstraintidx = tableConstraintStr.indexOf("[1,");
-            String firstStr = tableConstraintStr.substring(0, pkConstraintidx);
-            String secondStr = tableConstraintStr.substring(pkConstraintidx);
+            int pkConstraintIdx = tableConstraintStr.indexOf("[1,");
+            String firstStr = tableConstraintStr.substring(0, pkConstraintIdx);
+            String secondStr = tableConstraintStr.substring(pkConstraintIdx);
 
             // get cur constraint str
             String tmp = secondStr.split(";")[0];
             String curConstraintStr = tmp.substring(0, tmp.length() - 1);
             int start = 2 * (count - 1);
             curConstraintStr += ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
+
 
             // insert new pk attribute by replacing the original
             String attr = curConstraintStr.split(",")[1].trim();

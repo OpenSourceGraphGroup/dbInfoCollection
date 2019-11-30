@@ -7,11 +7,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+enum KeyType{
+    PK, FK, PK_AND_FK, None
+}
+
 public class JoinInfo {
     private Connection connection;
     private String schema;
     private Map<String, List<String>> tableAttributeMap;
-    private Map<String, Boolean> isPrimaryKeyInfoMap;
+    private Map<String, KeyType> keyInfoMap;
     private Map<String, String> fkReferenceMap;
 
     public Map<String, String> getFkReferenceMap() {
@@ -30,18 +34,18 @@ public class JoinInfo {
         this.tableAttributeMap = tableAttributeMap;
     }
 
-    public Map<String, Boolean> getIsPrimaryKeyInfoMap() {
-        return isPrimaryKeyInfoMap;
+    public Map<String, KeyType> getKeyInfoMap() {
+        return keyInfoMap;
     }
 
-    public void setIsPrimaryKeyInfoMap(Map<String, Boolean> isPrimaryKeyInfoMap) {
-        this.isPrimaryKeyInfoMap = isPrimaryKeyInfoMap;
+    public void setKeyInfoMap(Map<String, KeyType> keyInfoMap) {
+        this.keyInfoMap = keyInfoMap;
     }
 
     public JoinInfo(Connection connection){
         this.connection = connection;
         tableAttributeMap = new HashMap<>();
-        isPrimaryKeyInfoMap = new HashMap<>();
+        keyInfoMap = new HashMap<>();
         fkReferenceMap = new HashMap<>();
     }
 
@@ -86,7 +90,7 @@ public class JoinInfo {
                 String tableOneInfo = curCondition.split(" = ")[0];
                 String tableTwoInfo = curCondition.split(" = ")[1];
 
-                if(tableOneInfo.contains(".") && tableTwoInfo.contains(".")){
+                if (tableOneInfo.contains(".") && tableTwoInfo.contains(".")) {
                     List<String> parsedInfoOne = parseTableInfo(tableOneInfo);
                     List<String> parsedInfoTWo = parseTableInfo(tableTwoInfo);
 
@@ -95,13 +99,18 @@ public class JoinInfo {
                     String tableOneJoinAttr = parsedInfoOne.get(1);
                     String tableTwoJoinAttr = parsedInfoTWo.get(1);
 
-                    if(isPrimaryKeyInfoMap.get(tableOneName)){
-                        fkReferenceMap.put(tableTwoName+"."+tableTwoJoinAttr, tableOneName + "." + tableOneJoinAttr);
-                    }else{
-                        fkReferenceMap.put(tableOneName+"."+tableOneJoinAttr, tableTwoName + "." + tableTwoJoinAttr);
+                    if (keyInfoMap.get(tableOneName) == KeyType.PK
+                            && keyInfoMap.get(tableTwoName) == KeyType.FK) {
+                        fkReferenceMap.put(tableTwoName + "." + tableTwoJoinAttr, tableOneName + "." + tableOneJoinAttr);
+                    } else if (keyInfoMap.get(tableOneName) == KeyType.FK
+                            && keyInfoMap.get(tableTwoName) == KeyType.PK) {
+                        fkReferenceMap.put(tableOneName + "." + tableOneJoinAttr, tableTwoName + "." + tableTwoJoinAttr);
+                    } else {
+                        throw new Exception("Can not find index when joining two tables!");
                     }
                 }
             }
+
         }
     }
 
@@ -140,18 +149,29 @@ public class JoinInfo {
     private void parseKeyInfo() {
         this.tableAttributeMap.forEach((tableName, joinAttributes)->{
             for(String joinAttribute: joinAttributes) {
-                String sql = String.format("select count(*) from information_schema.STATISTICS where TABLE_SCHEMA='%s' " +
-                                "and TABLE_NAME='%s' and INDEX_NAME='PRIMARY' and COLUMN_NAME='%s'", this.schema,
-                        tableName, joinAttribute);
-                ResultSet resultSet = Common.query(connection, sql);
+
+                boolean isTableUsingFK = false;
                 try {
-                    if (resultSet.next()) {
-                        int count = resultSet.getInt(1);
-                        boolean isTableUsingPK = count != 0;
-                        this.isPrimaryKeyInfoMap.put(tableName, isTableUsingPK);
-                    }
+                    isTableUsingFK = Common.isFK(this.connection, this.schema, tableName, joinAttribute);
                 } catch (SQLException e) {
                     e.printStackTrace();
+                }
+
+                boolean isTableUsingPK = false;
+                try {
+                    isTableUsingPK = Common.isPK(this.connection, this.schema, tableName, joinAttribute);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+
+                if(isTableUsingPK && isTableUsingFK){
+                    this.keyInfoMap.put(tableName, KeyType.FK);
+                }else if(isTableUsingPK){
+                    this.keyInfoMap.put(tableName, KeyType.PK);
+                }else if(isTableUsingFK){
+                    this.keyInfoMap.put(tableName, KeyType.FK);
+                }else{
+                    this.keyInfoMap.put(tableName, KeyType.None);
                 }
             }
         });

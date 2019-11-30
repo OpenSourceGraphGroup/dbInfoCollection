@@ -63,6 +63,38 @@ public class Common {
         }
     }
 
+    /**
+     * Given the schema, table and attribute, return if the attribute is a foreign key in that table
+     */
+    public static boolean isFK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
+        String sql = String.format("select count(*) from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA='%s' " +
+                        "and TABLE_NAME='%s' and CONSTRAINT_NAME != 'PRIMARY' and COLUMN_NAME='%s'", schema,
+                tableName, attribute);
+        ResultSet resultSet = Common.query(connection, sql);
+
+        if (resultSet.next()) {
+            int count = resultSet.getInt(1);
+            return count >= 1;
+        }
+        return false;
+    }
+
+    /**
+     * Given the schema, table and attribute, return if the attribute is a primary key in that table
+     */
+    public static boolean isPK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
+        String sql = String.format("select count(*) from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA='%s' " +
+                        "and TABLE_NAME='%s' and CONSTRAINT_NAME = 'PRIMARY' and COLUMN_NAME='%s'", schema,
+                tableName, attribute);
+        ResultSet resultSet = Common.query(connection, sql);
+
+        if (resultSet.next()) {
+            int count = resultSet.getInt(1);
+            return count >= 1;
+        }
+        return false;
+    }
+
     @SuppressWarnings("unchecked")
     static <T> T cast(Object obj) {
         return (T) obj;

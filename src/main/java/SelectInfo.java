@@ -31,7 +31,10 @@ public class SelectInfo {
             String[] orOps = condition.split(" or ");
 
             for (String orOp : orOps) {
-                sb.append(parseOp(orOp)).append("#");
+                String rst = parseOp(orOp);
+                if(!rst.isEmpty()){
+                    sb.append(rst).append("#");
+                }
             }
             // only one op
             if (orOps.length == 1) {
@@ -41,7 +44,10 @@ public class SelectInfo {
             }
         } else {
             for (String andOp : andOps) {
-                sb.append(parseOp(andOp)).append("#");
+                String rst = parseOp(andOp);
+                if(!rst.isEmpty()){
+                    sb.append(rst).append("#");
+                }
             }
             sb.append("and");
         }
@@ -52,17 +58,8 @@ public class SelectInfo {
         if (whereOp.charAt(0) == '(') {
             whereOp = whereOp.substring(1, whereOp.length() - 1);
         }
-        String op = "";
-        if (whereOp.contains(" = ")) {
-            whereOp = whereOp.split(" = ")[0];
-            op = "@=";
-        } else if (whereOp.contains(" > ")) {
-            whereOp = whereOp.split(" > ")[0];
-            op = "@>";
-        } else if (whereOp.contains(" < ")) {
-            whereOp = whereOp.split(" < ")[0];
-            op = "@<";
-        } else if (whereOp.contains(" >= ")) {
+        String op;
+        if (whereOp.contains(" >= ")) {
             whereOp = whereOp.split(" >= ")[0];
             op = "@>=";
         } else if (whereOp.contains(" <= ")) {
@@ -71,21 +68,32 @@ public class SelectInfo {
         } else if (whereOp.contains(" <> ")) {
             whereOp = whereOp.split(" <> ")[0];
             op = "@<>";
-        } else if (whereOp.contains(" bet ")) {
-            whereOp = whereOp.split(" bet ")[0];
+        } else if (whereOp.contains(" = ")) {
+            whereOp = whereOp.split(" = ")[0];
+            op = "@=";
+        } else if (whereOp.contains(" > ")) {
+            whereOp = whereOp.split(" > ")[0];
+            op = "@>";
+        } else if (whereOp.contains(" < ")) {
+            whereOp = whereOp.split(" < ")[0];
+            op = "@<";
+        } else if (whereOp.contains(" between ")) {
+            whereOp = whereOp.split(" between ")[0];
             op = "@bet";
+        } else if (whereOp.contains(" like ") && whereOp.contains("not")) {
+            whereOp = whereOp.split(" notlike ")[0];
+            op = "@like";
         } else if (whereOp.contains(" like ")) {
             whereOp = whereOp.split(" like ")[0];
-            op = "@like";
-        } else if (whereOp.contains(" notlike ")) {
-            whereOp = whereOp.split(" notlike ")[0];
             op = "@notlike";
-        } else if (whereOp.contains(" in ")) {
-            whereOp = whereOp.split(" in ")[0];
-            op = "@in";
-        } else if (whereOp.contains(" notin ")) {
+        } else if (whereOp.contains(" in ") && whereOp.contains("not")) {
             whereOp = whereOp.split(" notin ")[0];
             op = "@notin";
+        }else if (whereOp.contains(" in ")) {
+            whereOp = whereOp.split(" in ")[0];
+            op = "@in";
+        } else{
+            return "";
         }
         // the attribute
         String attribute = "";
