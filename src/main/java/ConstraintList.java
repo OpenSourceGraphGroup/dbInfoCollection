@@ -2,6 +2,10 @@
 import java.sql.Connection;
 import java.util.*;
 
+/**
+ *  @Author: Zhengmin Lai
+ *  @Description: Parse Constraint List
+ */
 public class ConstraintList {
     private Connection connection;
     private Map<String, Integer> tableMap = new HashMap<>();
@@ -82,8 +86,6 @@ public class ConstraintList {
             } else if (node.nodeType == NodeType.SELECT_NODE) {
                 if (node.parent != null) {
                     if (node.parent.nodeType == NodeType.JOIN_NODE) {
-                        // I need to know the table name, and if there exists any attributes participating in this
-                        // join as primary key or foreigin key
                         parseParentJoin(node, filterRate);
                     } else {
                         throw new Exception("I think there must be sth wrong with the parsed tree, where there exists " +
@@ -107,7 +109,7 @@ public class ConstraintList {
     }
 
     private void parseParentSelect(QueryNode node, double filterRate) throws Exception {
-        if(!ifConditionParsed(node.parent.condition)) {
+        if(!isConditionParsed(node.parent.condition)) {
             SelectInfo selectInfo = new SelectInfo();
             selectInfo.parseSelectNodeWhereOps(node.parent.condition);
             String whereOps = selectInfo.getParsedWhereOps();
@@ -119,7 +121,7 @@ public class ConstraintList {
         }
     }
 
-    private boolean ifConditionParsed(String condition){
+    private boolean isConditionParsed(String condition){
         if(!this.parsedConditions.contains(condition)){
             this.parsedConditions.add(condition);
             return false;
@@ -129,7 +131,7 @@ public class ConstraintList {
     }
 
     private void parseParentJoin(QueryNode node, double filterRate) throws Exception {
-        if(!ifConditionParsed(node.parent.condition)) {
+        if(!isConditionParsed(node.parent.condition)) {
             JoinInfo joinInfo = new JoinInfo(connection);
             joinInfo.parseJoinInfo(node.parent.condition);
 

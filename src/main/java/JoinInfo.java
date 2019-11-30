@@ -1,6 +1,5 @@
 
 import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -8,9 +7,13 @@ import java.util.List;
 import java.util.Map;
 
 enum KeyType{
-    PK, FK, PK_AND_FK, None
+    PK, FK, None
 }
 
+/**
+ *  @Author: Zhengmin Lai
+ *  @Description: Parse Constraint List of Join Node
+ */
 public class JoinInfo {
     private Connection connection;
     private String schema;

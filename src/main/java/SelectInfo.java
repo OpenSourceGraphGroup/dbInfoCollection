@@ -1,3 +1,7 @@
+/**
+ *  @Author: Zhengmin Lai
+ *  @Description: Parse Constraint List of Select Node
+ */
 public class SelectInfo {
     private String tableName;
     private String parsedWhereOps;
