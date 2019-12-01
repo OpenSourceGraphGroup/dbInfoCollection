@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 enum KeyType{
-    PK, FK, None
+    PK, FK, PK_AND_FK, None
 }
 
 /**
@@ -20,6 +20,7 @@ public class JoinInfo {
     private Map<String, List<String>> tableAttributeMap;
     private Map<String, KeyType> keyInfoMap;
     private Map<String, String> fkReferenceMap;
+    private Map<String, String> tableNickNameMap;
 
     public Map<String, String> getFkReferenceMap() {
         return fkReferenceMap;
@@ -45,8 +46,9 @@ public class JoinInfo {
         this.keyInfoMap = keyInfoMap;
     }
 
-    public JoinInfo(Connection connection){
+    public JoinInfo(Connection connection, Map<String, String> tableNickNameMap){
         this.connection = connection;
+        this.tableNickNameMap = tableNickNameMap;
         tableAttributeMap = new HashMap<>();
         keyInfoMap = new HashMap<>();
         fkReferenceMap = new HashMap<>();
@@ -102,18 +104,34 @@ public class JoinInfo {
                     String tableOneJoinAttr = parsedInfoOne.get(1);
                     String tableTwoJoinAttr = parsedInfoTWo.get(1);
 
-                    if (keyInfoMap.get(tableOneName) == KeyType.PK
-                            && keyInfoMap.get(tableTwoName) == KeyType.FK) {
-                        fkReferenceMap.put(tableTwoName + "." + tableTwoJoinAttr, tableOneName + "." + tableOneJoinAttr);
-                    } else if (keyInfoMap.get(tableOneName) == KeyType.FK
-                            && keyInfoMap.get(tableTwoName) == KeyType.PK) {
+                    KeyType tableOneKeyType = keyInfoMap.get(tableOneName);
+                    KeyType tableTwoKeyType = keyInfoMap.get(tableTwoName);
+
+                    parseKeyInfoMap(tableOneName, tableTwoKeyType, tableOneKeyType);
+                    parseKeyInfoMap(tableTwoName, tableOneKeyType, tableTwoKeyType);
+
+                    if (keyInfoMap.get(tableOneName) == KeyType.FK && keyInfoMap.get(tableTwoName) == KeyType.PK) {
                         fkReferenceMap.put(tableOneName + "." + tableOneJoinAttr, tableTwoName + "." + tableTwoJoinAttr);
+                    } else if (keyInfoMap.get(tableTwoName) == KeyType.FK && keyInfoMap.get(tableOneName) == KeyType.PK) {
+                        fkReferenceMap.put(tableTwoName + "." + tableTwoJoinAttr, tableOneName + "." + tableOneJoinAttr);
                     } else {
                         throw new Exception("Can not find index when joining two tables!");
                     }
                 }
             }
 
+        }
+    }
+
+    private void parseKeyInfoMap(String tableTwoName, KeyType tableOneKeyType, KeyType tableTwoKeyType) throws Exception {
+        if (tableTwoKeyType == KeyType.PK_AND_FK) {
+            if (tableOneKeyType == KeyType.FK) {
+                keyInfoMap.put(tableTwoName, KeyType.PK);
+            } else if (tableOneKeyType == KeyType.PK) {
+                keyInfoMap.put(tableTwoName, KeyType.FK);
+            } else {
+                throw new Exception("Can not find index when joining two tables!");
+            }
         }
     }
 
@@ -150,8 +168,13 @@ public class JoinInfo {
     }
 
     private void parseKeyInfo() {
-        this.tableAttributeMap.forEach((tableName, joinAttributes)->{
+        this.tableAttributeMap.forEach((curTableName, joinAttributes)->{
             for(String joinAttribute: joinAttributes) {
+
+                String tableName = curTableName;
+                if(tableNickNameMap.containsKey(curTableName)){
+                    tableName = tableNickNameMap.get(curTableName);
+                }
 
                 boolean isTableUsingFK = false;
                 try {
@@ -168,13 +191,13 @@ public class JoinInfo {
                 }
 
                 if(isTableUsingPK && isTableUsingFK){
-                    this.keyInfoMap.put(tableName, KeyType.FK);
+                    this.keyInfoMap.put(curTableName, KeyType.PK_AND_FK);
                 }else if(isTableUsingPK){
-                    this.keyInfoMap.put(tableName, KeyType.PK);
+                    this.keyInfoMap.put(curTableName, KeyType.PK);
                 }else if(isTableUsingFK){
-                    this.keyInfoMap.put(tableName, KeyType.FK);
+                    this.keyInfoMap.put(curTableName, KeyType.FK);
                 }else{
-                    this.keyInfoMap.put(tableName, KeyType.None);
+                    this.keyInfoMap.put(curTableName, KeyType.None);
                 }
             }
         });

@@ -2,6 +2,7 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class MyTest {
@@ -36,7 +37,7 @@ public class MyTest {
     @Test
     public void testJoinInfo() throws Exception{
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        JoinInfo joinInfo = new JoinInfo(connection);
+        JoinInfo joinInfo = new JoinInfo(connection, new HashMap<>());
         String condition = "tpch.orders.O_CUSTKEY = tpch.customer.C_CUSTKEY ";
         joinInfo.parseJoinInfo(condition);
     }

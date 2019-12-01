@@ -3,14 +3,15 @@ import java.sql.Connection;
 import java.util.*;
 
 /**
- *  @Author: Zhengmin Lai
- *  @Description: Parse Constraint List
+ * @Author: Zhengmin Lai
+ * @Description: Parse Constraint List
  */
 public class ConstraintList {
     private Connection connection;
     private Map<String, Integer> tableMap = new HashMap<>();
     private List<String> tableConstraints = new LinkedList<>();
     private Set<String> parsedConditions = new HashSet<>();
+    private Map<String, String> tableNickNameMap = new HashMap<>();
     private int index = 0;
 
     private Map<Integer, Integer> joinCount = new HashMap<>();
@@ -73,7 +74,7 @@ public class ConstraintList {
                 filterRate = (double) node.parent.count / (double) node.count;
             }
             if (node.nodeType == NodeType.LEAF_NODE) {
-                // leaf node's condition is the table name
+                parseLeafNodeCondition(node.condition);
                 if (node.parent != null) {
                     if (node.parent.nodeType == NodeType.SELECT_NODE) {
                         parseParentSelect(node, filterRate);
@@ -108,63 +109,67 @@ public class ConstraintList {
         return tableConstraints;
     }
 
-    private void parseParentSelect(QueryNode node, double filterRate) throws Exception {
-        if(!isConditionParsed(node.parent.condition)) {
-            SelectInfo selectInfo = new SelectInfo();
-            selectInfo.parseSelectNodeWhereOps(node.parent.condition);
-            String whereOps = selectInfo.getParsedWhereOps();
-            String tableName = selectInfo.getTableName();
-            int idx = updateIdx(tableName);
-            String tableConstraintStr = tableConstraints.get(idx) + "; [0, " + whereOps +
-                    ", " + filterRate + "]";
-            tableConstraints.set(idx, tableConstraintStr);
+    private void parseLeafNodeCondition(String condition) {
+        String[] tables = condition.split(" ");
+        if (tables.length > 1) {
+            tableNickNameMap.put(tables[1], tables[0]);
         }
     }
 
-    private boolean isConditionParsed(String condition){
-        if(!this.parsedConditions.contains(condition)){
+    private void parseParentSelect(QueryNode node, double filterRate) throws Exception {
+        SelectInfo selectInfo = new SelectInfo();
+        selectInfo.parseSelectNodeWhereOps(node.parent.condition);
+        String whereOps = selectInfo.getParsedWhereOps();
+        String tableName = selectInfo.getTableName();
+        int idx = updateIdx(tableName);
+        String tableConstraintStr = tableConstraints.get(idx) + "; [0, " + whereOps +
+                ", " + filterRate + "]";
+        tableConstraints.set(idx, tableConstraintStr);
+    }
+
+    private boolean isConditionParsed(String condition) {
+        if (!this.parsedConditions.contains(condition)) {
             this.parsedConditions.add(condition);
             return false;
-        }else{
+        } else {
             return true;
         }
     }
 
     private void parseParentJoin(QueryNode node, double filterRate) throws Exception {
-        if(!isConditionParsed(node.parent.condition)) {
-            JoinInfo joinInfo = new JoinInfo(connection);
+        if (!isConditionParsed(node.parent.condition)) {
+            JoinInfo joinInfo = new JoinInfo(connection, tableNickNameMap);
             joinInfo.parseJoinInfo(node.parent.condition);
 
             Set<String> keySet = joinInfo.getTableAttributeMap().keySet();
             List<String> keys = new ArrayList<>(keySet);
 
-            if (keys.size() != 2) {
-                throw new Exception("Parse Join Node error!");
+            List<String> sortedKeys = new LinkedList<>();
+
+            if (keys.size() < 2) {
+                throw new Exception("Parse Join Node error! Can not find two join keys!");
             }
             // we will parse join key table first to record the joinCount info which will be used later in fk join table
-            if (joinInfo.getKeyInfoMap().get(keys.get(1)) == KeyType.PK) {
-                String tmpKey = keys.get(0);
-                keys.set(0, keys.get(1));
-                keys.set(1, tmpKey);
-            }
-            int pkIdx = updateIdx(keys.get(0));
-            for (int i = 0; i < 2; i++) {
-                String tableName = keys.get(i);
-                boolean isAnotherFK = true;
-                if (i == 0) {
-                    String anotherTableName = keys.get(1);
-                    if (joinInfo.getKeyInfoMap().get(anotherTableName) != KeyType.FK) {
-                        isAnotherFK = false;
-                    }
+            for (int i = 0; i < keys.size(); i++) {
+                if (joinInfo.getKeyInfoMap().get(keys.get(i)) == KeyType.PK) {
+                    sortedKeys.add(0, keys.get(i));
+                } else {
+                    sortedKeys.add(keys.get(i));
                 }
+            }
+            List<Integer> pkIdxes = new ArrayList<>();
+            for (int i = 0; i < sortedKeys.size(); i++) {
+                String tableName = sortedKeys.get(i);
                 int idx = updateIdx(tableName);
                 List<String> attributes = joinInfo.getTableAttributeMap().get(tableName);
                 String tableConstraintStr = tableConstraints.get(idx);
                 if (joinInfo.getKeyInfoMap().containsKey(tableName)) {
-                    if (joinInfo.getKeyInfoMap().get(tableName) == KeyType.PK && isAnotherFK) {
-                        tableConstraintStr = updateConstraintStrPK(idx, attributes, tableConstraintStr);
+                    if (joinInfo.getKeyInfoMap().get(tableName) == KeyType.PK) {
+                        int pkIdx = updateIdx(sortedKeys.get(i));
+                        pkIdxes.add(pkIdx);
+                        tableConstraintStr = updateConstraintStrPK(pkIdx, attributes, tableConstraintStr);
                     } else {
-                        tableConstraintStr = updateConstraintFK(filterRate, joinInfo, pkIdx, tableName, attributes, tableConstraintStr);
+                        tableConstraintStr = updateConstraintFK(filterRate, joinInfo, pkIdxes, tableName, attributes, tableConstraintStr);
                     }
                     tableConstraints.set(idx, tableConstraintStr);
                 } else {
@@ -175,9 +180,8 @@ public class ConstraintList {
     }
 
     private String updateConstraintFK(double filterRate, JoinInfo joinInfo,
-                                      int pkIdx, String tableName, List<String> attributes,
+                                      List<Integer> pkIdxes, String tableName, List<String> attributes,
                                       String tableConstraintStr) {
-        int start = 2 * (joinCount.get(pkIdx) - 1);
         StringBuilder fkAttributes = new StringBuilder();
         for (String attr : attributes) {
             fkAttributes.append(attr).append("#");
@@ -185,14 +189,27 @@ public class ConstraintList {
         fkAttributes.deleteCharAt(fkAttributes.length() - 1);
 
         StringBuilder fkRefAttributes = new StringBuilder();
+        List<String> refTables = new ArrayList<>();
         for (String attr : attributes) {
-            fkRefAttributes.append(joinInfo.getFkReferenceMap().get(tableName + "." + attr)).append("#");
+            String refAttr = joinInfo.getFkReferenceMap().get(tableName + "." + attr);
+            fkRefAttributes.append(refAttr).append("#");
+
+            String table = refAttr.substring(0, refAttr.indexOf("."));
+            refTables.add(table);
         }
         fkRefAttributes.deleteCharAt(fkRefAttributes.length() - 1);
 
-        tableConstraintStr += "; [2, " + fkAttributes + ", " + filterRate + ", " + fkRefAttributes +
-                ", " + (int) (Math.pow(2, start)) + ", " + (int) (Math.pow(2, start + 1)) + "]";
-
+        StringBuilder refNum = new StringBuilder();
+        // correspond the table name with its ref key num
+        for(String t: refTables) {
+            for (int pkIdx : pkIdxes) {
+                if (tableMap.get(t).equals(pkIdx)) {
+                    int start = 2 * (joinCount.get(pkIdx) - 1);
+                    refNum.append(", ").append((int) (Math.pow(2, start))).append(", ").append((int) (Math.pow(2, start + 1)));
+                }
+            }
+        }
+        tableConstraintStr += "; [2, " + fkAttributes + ", " + filterRate + ", " + fkRefAttributes + refNum + "]";
         return tableConstraintStr;
     }
 
