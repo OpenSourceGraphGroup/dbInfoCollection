@@ -44,6 +44,10 @@ public class SchemaCollector {
         }
     }
 
+    public String getTableSize(String schemaName,String tableName){
+        return "";
+    }
+    
     /**
      * 获取主键信息
      *
@@ -55,21 +59,14 @@ public class SchemaCollector {
      */
     public List<Object> getPrimaryKeys(String schemaName, String tableName) {
         List<Object> pkNameList = new ArrayList<Object>();
-//        String result="P(";
         try {
             ResultSet rs = databaseMetaData.getPrimaryKeys(null, schemaName, tableName);
             while (rs.next()) {
-                String columnName = rs.getString("COLUMN NAME");//列名
-                short keySeq = rs.getShort("KEY SEQ");//序列号
+//                String columnName = rs.getString("COLUMN NAME");//列名
+//                short keySeq = rs.getShort("KEY SEQ");//序列号
                 String pkName = rs.getString("PK NAME");//主键名称
                 pkNameList.add(pkName);
             }
-//            for(String i:pkNameList){
-//                result+=i;
-//                result+=",";
-//            }
-//            result=result.substring(0,result.length()-1);
-//            result+=")";
             return pkNameList;
         } catch (SQLException e) {
             e.printStackTrace();
@@ -90,29 +87,138 @@ public class SchemaCollector {
             result+=(String)i;
             result+=",";
         }
-        result=result.substring(0,result.length()-1);result=result.substring(0,result.length()-1);
+        result=result.substring(0,result.length()-1);
         result+=")";
-        return result;
+        return result.toUpperCase();
     }
 
     /**
-     * @Description: getExportedKeys
+     * @Description: getForeignKeys
      * @Param: [schemaName, tableName]
      * @return: java.lang.String -->F(foreign_key, referenced_table.referenced_primary_key)
      * @Author: Jiaye Liu
      * @Date: 9:54
      */
-    public void getExportedKeys(String schemaName, String tableName) {
-        List<Object> ekNameList = new ArrayList<Object>();
-        String result = "F(";
+    public List<Object> getForeignKeys(String schemaName, String tableName) {
+        List<Object> ekList = new ArrayList<Object>();
         try {
-            ResultSet rs = databaseMetaData.getExportedKeys(null, schemaName, tableName);
+            ResultSet rs = databaseMetaData.getForeignKeys(null, schemaName, tableName);
             while (rs.next()) {
                 String fkColumnName = rs.getString("FKCOLUMN NAME");
                 String fkTableName = rs.getString("FKTABLE NAME");
+                ForeignKeys ek=new ForeignKeys(fkColumnName,fkTableName);
+                ResultSet rsTmp=databaseMetaData.getPrimaryKeys(null,schemaName,tableName);
+                while(rsTmp.next()){
+                    String pkName= rsTmp.getString("PK NAME");
+                    ek.appendPKName(pkName);
+                }
+                ekList.add(ek);
             }
+            return ekList;
         } catch (SQLException e) {
             e.printStackTrace();
+            return null;
         }
+    }
+    public String getFKNameListString(List<Object> fkNameList) {
+        String result="";
+        for (Object i: fkNameList) {
+            result += "F(";
+            result+=(ForeignKeys)i;
+            result+=");";
+        }
+        result=result.substring(0,result.length()-1);
+        return result.toUpperCase();
+    }
+
+    public List<Object> getTableColumns(String schemaName,String tableName){
+        List<Object> tableColumns=new ArrayList<Object>();
+        try {
+            ResultSet rs=databaseMetaData.getColumns(null,schemaName,tableName,"%");
+            while(rs.next()){
+                String columnName=rs.getString("COLUMN NAME");
+                String columnType=rs.getString("SQL DATA TYPE");
+                if(columnType.toUpperCase().equals("CHAR"))
+                    columnType="VARCHAR";
+                if(columnType.toUpperCase().equals("INT"))
+                    columnType="INTEGER";
+                Column c=new Column(schemaName,tableName,columnName,columnType);
+                tableColumns.add(c);
+            }
+            return tableColumns;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public String getTableInfo(String schemaName,String tableName){
+        List<Object> columnList= getTableColumns(schemaName,tableName);
+        List<Object> pkList=getPrimaryKeys(schemaName,tableName);
+        List<Object> fkList=getForeignKeys(schemaName,tableName);
+        String result="T[";
+        result+=tableName+";"+getTableSize(schemaName,tableName)+";";
+        for(Object c:columnList){
+            Column tmp=(Column)c;
+            result+=tmp.toString()+";";
+        }
+        result+=getPKNameListString(pkList)+";";
+        result+=getFKNameListString(fkList);
+        result=result.substring(0,result.length()-1);
+        return result;
+    }
+
+}
+
+class ForeignKeys{
+    String fkName;
+    String fkTable;
+    List<Object> pkNameList;
+    public ForeignKeys(String fkName,String fkTable){
+        this.fkName=fkName;
+        this.fkTable=fkTable;
+        this.pkNameList=new ArrayList<Object>();
+    }
+    public void appendPKName(String pkName){
+        this.pkNameList.add(pkName);
+    }
+
+    @Override
+    public String toString() {
+        String result="";
+        result+=fkName+",";
+        for(Object s:pkNameList){
+            result+=this.fkTable+".";
+            result+=(String)s;
+            result+=",";
+        }
+        result=result.substring(0,result.length()-1);
+        return result;
+    }
+}
+
+class Column{
+    String schemaName;
+    String tableName;
+    String columnName;
+    String columnType;
+    public Column(String schemaName,String tableName,String columnName,String columnType){
+        this.schemaName=schemaName;
+        this.tableName=tableName;
+        this.columnName=columnName;
+        this.columnType=columnType;
+    }
+
+    public String getMaxValueSQL(){
+        if(columnType=="Integer"){
+            return "select max("+columnName+") from "+schemaName+"."+tableName;
+        }
+        return "";
+    }
+
+    @Override
+    public String toString() {
+        String result="";
+        return result;
     }
 }
