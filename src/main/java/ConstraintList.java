@@ -12,6 +12,7 @@ public class ConstraintList {
     private List<String> tableConstraints = new LinkedList<>();
     private Set<String> parsedConditions = new HashSet<>();
     private Map<String, String> tableNickNameMap = new HashMap<>();
+    private Map<String, Integer> usedJoinCount = new HashMap<>();
     private int index = 0;
 
     private Map<Integer, Integer> joinCount = new HashMap<>();
@@ -60,9 +61,136 @@ public class ConstraintList {
         this.connection = connection;
     }
 
-    public List<String> getConstraintList(QueryNode root) throws Exception {
+    public void refineConstraintList() {
+        if (this.tableConstraints.size() == 0) {
+            System.out.println("Please generate constraint list first!");
+        } else {
+            // record the num of useless join count where the table participates as primary key
+            Map<String, Integer> tableRefFilterUselessCount = new HashMap<>();
+            // delete useless fk constraint
+            deleteUselessFKConstraint(tableRefFilterUselessCount);
+            // update pk num
+            updatePkTableConstraint(tableRefFilterUselessCount);
+            // update fk num
+            updateFkTableConstraint();
+            // delete empty constraint
+            deleteEmptyConstraint();
+        }
+    }
+
+    private void deleteEmptyConstraint() {
+        Iterator<String> iterator = tableConstraints.iterator();
+        while (iterator.hasNext()){
+            String tableConstraint = iterator.next();
+            String[] constraints = tableConstraint.split(";");
+            if(constraints.length <= 1){
+                iterator.remove();
+            }
+        }
+    }
+
+    private void updateFkTableConstraint() {
+        for (int idx = 0; idx < tableConstraints.size(); idx++) {
+            String tableConstraint  = tableConstraints.get(idx);
+            String[] constraints = tableConstraint.split(";");
+            for(int j = 0; j < constraints.length; j++) {
+                String constraint = constraints[j].trim();
+                if (constraint.startsWith("[2,")) {
+                    LinkedHashSet<String> tableNameSet = getFkRefTableSet(constraint);
+                    int i = 0;
+                    constraint = constraint.substring(1, constraint.length()-1);
+                    String[] tmpStrs = constraint.split(",");
+                    for (String refTable : tableNameSet) {
+                        int usedCount = usedJoinCount.getOrDefault(refTable, 1);
+                        int numOne = (int)Math.pow(2, 2 * usedCount - 2);
+                        int numTwo = 2 * numOne;
+                        tmpStrs[4 + i] = " " + numOne;
+                        tmpStrs[4 + i + 1] = " " + numTwo;
+                        i+=2;
+                        usedCount++;
+                        usedJoinCount.put(refTable, usedCount);
+                    }
+                    StringBuilder tmpConstraintStr = new StringBuilder();
+                    for(String tmpStr : tmpStrs){
+                        tmpConstraintStr.append(tmpStr).append(",");
+                    }
+                    constraint = tmpConstraintStr.deleteCharAt(tmpConstraintStr.length()-1).toString();
+
+                    constraints[j] = " [" + constraint + "]";
+                    StringBuilder curConstraintStr = new StringBuilder();
+                    for(String tmpStr : constraints){
+                        curConstraintStr.append(tmpStr).append(";");
+                    }
+                    curConstraintStr = curConstraintStr.deleteCharAt(curConstraintStr.length()-1);
+                    tableConstraints.set(idx, curConstraintStr.toString());
+                }
+            }
+        }
+    }
+
+    private LinkedHashSet<String> getFkRefTableSet(String fkConstraint) {
+        LinkedHashSet<String> tableNameSet = new LinkedHashSet<>();
+        String[] joinAttrs = fkConstraint.split(",")[3].trim().split("#");
+        for (String attr : joinAttrs) {
+            String tableName = attr.substring(0, attr.indexOf("."));
+            tableNameSet.add(tableName);
+        }
+        return tableNameSet;
+    }
+
+    private void updatePkTableConstraint(Map<String, Integer> tableRefFilterUselessCount) {
+        tableRefFilterUselessCount.forEach((table, count) -> {
+            String tableConstraint = tableConstraints.get(tableMap.get(table));
+            String[] constraints = tableConstraint.split(";");
+            for (String constraint : constraints) {
+                if (constraint.trim().startsWith("[1,")) {
+                    String[] tmpStrs = constraint.split(",");
+                    int joinCount = (tmpStrs.length - 2) / 2;
+                    if (joinCount == count) {
+                        // remove pk constraint
+                        tableConstraint = tableConstraint.replace(";" + constraint, "");
+                    } else {
+                        StringBuilder curStr = new StringBuilder(tmpStrs[0] + "," + tmpStrs[1]);
+                        int curCount = joinCount - count;
+                        for (int i = 0; i < curCount; i++) {
+                            curStr.append(", ").append((int) Math.pow(2, 2 * i)).append(", ").append((int) Math.pow(2, 2 * i + 1));
+                        }
+                        curStr.append("]");
+                        tableConstraint = tableConstraint.replace(constraint, curStr);
+                    }
+                    break;
+                }
+            }
+            tableConstraints.set(tableMap.get(table), tableConstraint);
+        });
+    }
+
+    private void deleteUselessFKConstraint(Map<String, Integer> tableRefFilterUselessCount) {
+        for (int i = 0; i < tableConstraints.size(); i++) {
+            String curConstraintsStr = tableConstraints.get(i);
+            String[] constrains = curConstraintsStr.split(";");
+            for (String constraint : constrains) {
+                constraint = constraint.trim();
+                if (constraint.startsWith("[2,")) {
+                    double filterRate = Double.parseDouble(constraint.split(",")[2].trim());
+                    if (filterRate == 1.0) {
+                        Set<String> tableNameSet = getFkRefTableSet(constraint);
+                        for (String table : tableNameSet) {
+                            int count = tableRefFilterUselessCount.getOrDefault(table, 0);
+                            count++;
+                            tableRefFilterUselessCount.put(table, count);
+                        }
+                        curConstraintsStr = curConstraintsStr.replace("; " + constraint, "");
+                        this.tableConstraints.set(i, curConstraintsStr);
+                    }
+                }
+            }
+        }
+    }
+
+    public void generateConstraintList(QueryNode root) throws Exception {
         if (root == null) {
-            return new ArrayList<>();
+            return;
         }
 
         List<QueryNode> queryNodeList = new ArrayList<>();
@@ -70,8 +198,11 @@ public class ConstraintList {
 
         for (QueryNode node : queryNodeList) {
             double filterRate = 0;
-            if (node.parent != null && node.count != 0) {
-                filterRate = (double) node.parent.count / (double) node.count;
+            if (node.parent != null) {
+                if (node.count != 0)
+                    filterRate = (double) node.parent.count / (double) node.count;
+                else
+                    filterRate = 1.0;
             }
             if (node.nodeType == NodeType.LEAF_NODE) {
                 parseLeafNodeCondition(node.condition);
@@ -106,7 +237,6 @@ public class ConstraintList {
                 }
             }
         }
-        return tableConstraints;
     }
 
     private void parseLeafNodeCondition(String condition) {
@@ -189,7 +319,7 @@ public class ConstraintList {
         fkAttributes.deleteCharAt(fkAttributes.length() - 1);
 
         StringBuilder fkRefAttributes = new StringBuilder();
-        List<String> refTables = new ArrayList<>();
+        Set<String> refTables = new HashSet<>();
         for (String attr : attributes) {
             String refAttr = joinInfo.getFkReferenceMap().get(tableName + "." + attr);
             fkRefAttributes.append(refAttr).append("#");
@@ -201,7 +331,7 @@ public class ConstraintList {
 
         StringBuilder refNum = new StringBuilder();
         // correspond the table name with its ref key num
-        for(String t: refTables) {
+        for (String t : refTables) {
             for (int pkIdx : pkIdxes) {
                 if (tableMap.get(t).equals(pkIdx)) {
                     int start = 2 * (joinCount.get(pkIdx) - 1);

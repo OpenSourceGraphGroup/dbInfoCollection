@@ -21,8 +21,15 @@ public class LoadingInfoCollect {
             root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
             ComputingTree.computingSqlUpadteCount(connection, root);
 
+            System.out.println("\nConstraint List:");
             ConstraintList constraintList = new ConstraintList(connection);
-            constraintList.getConstraintList(root);
+            constraintList.generateConstraintList(root);
+            for (String output : constraintList.getTableConstraints()) {
+                System.out.println(output);
+            }
+
+            System.out.println("\nRefined Constraint List:");
+            constraintList.refineConstraintList();
             for (String output : constraintList.getTableConstraints()) {
                 System.out.println(output);
             }
