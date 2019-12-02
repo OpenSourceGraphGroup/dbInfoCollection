@@ -87,11 +87,12 @@ public class SelectInfo {
             whereOp = whereOp.split(" between ")[0];
             op = "@bet";
         } else if (whereOp.contains(" like ") && whereOp.contains("not")) {
-            whereOp = whereOp.split(" notlike ")[0];
-            op = "@like";
+            whereOp = whereOp.split(" like ")[0];
+            whereOp = whereOp.substring(whereOp.lastIndexOf("(") + 1);
+            op = "@notlike";
         } else if (whereOp.contains(" like ")) {
             whereOp = whereOp.split(" like ")[0];
-            op = "@notlike";
+            op = "@like";
         } else if (whereOp.contains(" in ") && whereOp.contains("not")) {
             whereOp = whereOp.split(" notin ")[0];
             op = "@notin";
