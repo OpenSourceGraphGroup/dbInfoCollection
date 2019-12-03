@@ -241,27 +241,3 @@ class ForeignKeys{
     }
 }
 
-class Column{
-    String schemaName;
-    String tableName;
-    String columnName;
-    String columnType;
-    public Column(String schemaName,String tableName,String columnName,String columnType){
-        this.schemaName=schemaName;
-        this.tableName=tableName;
-        this.columnName=columnName;
-        this.columnType=columnType;
-    }
-//    public String getMaxValueSQL(){
-//        if(columnType=="Integer"){
-//            return "select max("+columnName+") from "+schemaName+"."+tableName;
-//        }
-//        return "";
-//    }
-    @Override
-    public String toString() {
-        String result="";
-        result+=columnName+","+columnType;
-        return result;
-    }
-}
