@@ -1,7 +1,4 @@
-import java.sql.Connection;
-import java.sql.DatabaseMetaData;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,10 +11,23 @@ import java.util.List;
 
 public class SchemaCollector {
     private DatabaseMetaData databaseMetaData = null;
+    private Statement st=null;
+
+    public static void main(String arg[]) throws SQLException {
+        Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
+        SchemaCollector sc=new SchemaCollector(connection);
+        List<Object> tableNameList=sc.getTableList();
+        for(Object table:tableNameList){
+            System.out.println((String)table);
+            System.out.println(sc.getTableInfo("tpch",(String)table));
+        }
+//        System.out.print(sc.getTableInfo("tpch","customer"));
+    }
 
     public SchemaCollector(Connection conn) {
         try {
             databaseMetaData = (DatabaseMetaData) conn.getMetaData();
+            st=conn.createStatement();
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -30,10 +40,11 @@ public class SchemaCollector {
      * @Param: [conn] 数据库连接
      * @return: java.util.List<java.lang.Object>
      */
-    public List<Object> getAllTable() {
+    public List<Object> getTableList() {
         List<Object> tableNameList = new ArrayList<Object>();
+        String[] types={"TABLE"};
         try {
-            ResultSet rs = databaseMetaData.getTables("", "", null, null);
+            ResultSet rs = databaseMetaData.getTables(null, null, "%",types);
             while (rs.next()) {
                 tableNameList.add(rs.getString("TABLE_NAME"));
             }
@@ -44,10 +55,23 @@ public class SchemaCollector {
         }
     }
 
+    /** 获取表数据量
+     * @Description: getTableSize
+     * @Param: [schemaName, tableName]
+     * @Returns: java.lang.String
+     */
     public String getTableSize(String schemaName,String tableName){
-        return "";
+        try {
+            String sql="select COUNT(*) from "+schemaName+"."+tableName;
+            ResultSet rs=st.executeQuery(sql);
+            rs.next();
+            return rs.getString(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
-    
+
     /**
      * 获取主键信息
      *
@@ -64,7 +88,7 @@ public class SchemaCollector {
             while (rs.next()) {
 //                String columnName = rs.getString("COLUMN NAME");//列名
 //                short keySeq = rs.getShort("KEY SEQ");//序列号
-                String pkName = rs.getString("PK NAME");//主键名称
+                String pkName = rs.getString("PK_NAME");//主键名称
                 pkNameList.add(pkName);
             }
             return pkNameList;
@@ -102,14 +126,14 @@ public class SchemaCollector {
     public List<Object> getForeignKeys(String schemaName, String tableName) {
         List<Object> ekList = new ArrayList<Object>();
         try {
-            ResultSet rs = databaseMetaData.getForeignKeys(null, schemaName, tableName);
+            ResultSet rs = databaseMetaData.getExportedKeys(null, schemaName, tableName);
             while (rs.next()) {
-                String fkColumnName = rs.getString("FKCOLUMN NAME");
-                String fkTableName = rs.getString("FKTABLE NAME");
+                String fkColumnName = rs.getString("FKCOLUMN_NAME");
+                String fkTableName = rs.getString("FKTABLE_NAME");
                 ForeignKeys ek=new ForeignKeys(fkColumnName,fkTableName);
                 ResultSet rsTmp=databaseMetaData.getPrimaryKeys(null,schemaName,tableName);
                 while(rsTmp.next()){
-                    String pkName= rsTmp.getString("PK NAME");
+                    String pkName= rsTmp.getString("PK_NAME");
                     ek.appendPKName(pkName);
                 }
                 ekList.add(ek);
@@ -120,6 +144,12 @@ public class SchemaCollector {
             return null;
         }
     }
+
+    /** 外键列表转为String
+     * @Description: getFKNameListString
+     * @Param: [fkNameList]
+     * @Returns: java.lang.String
+     */
     public String getFKNameListString(List<Object> fkNameList) {
         String result="";
         for (Object i: fkNameList) {
@@ -127,17 +157,26 @@ public class SchemaCollector {
             result+=(ForeignKeys)i;
             result+=");";
         }
-        result=result.substring(0,result.length()-1);
-        return result.toUpperCase();
+        if(result.length()<=0){
+            return "";
+        }else {
+            result = result.substring(0, result.length() - 1);
+            return result.toUpperCase();
+        }
     }
 
+    /** 获取表的列名与数据类型信息
+     * @Description: getTableColumns
+     * @Param: [schemaName, tableName]
+     * @Returns: java.util.List<java.lang.Object>
+     */
     public List<Object> getTableColumns(String schemaName,String tableName){
         List<Object> tableColumns=new ArrayList<Object>();
         try {
             ResultSet rs=databaseMetaData.getColumns(null,schemaName,tableName,"%");
             while(rs.next()){
-                String columnName=rs.getString("COLUMN NAME");
-                String columnType=rs.getString("SQL DATA TYPE");
+                String columnName=rs.getString("COLUMN_NAME");
+                String columnType=rs.getString("TYPE_NAME");
                 if(columnType.toUpperCase().equals("CHAR"))
                     columnType="VARCHAR";
                 if(columnType.toUpperCase().equals("INT"))
@@ -152,6 +191,11 @@ public class SchemaCollector {
         }
     }
 
+    /** 输出表的所有信息
+     * @Description: getTableInfo
+     * @Param: [schemaName, tableName]
+     * @Returns: java.lang.String
+     */
     public String getTableInfo(String schemaName,String tableName){
         List<Object> columnList= getTableColumns(schemaName,tableName);
         List<Object> pkList=getPrimaryKeys(schemaName,tableName);
@@ -165,7 +209,8 @@ public class SchemaCollector {
         result+=getPKNameListString(pkList)+";";
         result+=getFKNameListString(fkList);
         result=result.substring(0,result.length()-1);
-        return result;
+        result+=")]";
+        return result.toUpperCase();
     }
 
 }
@@ -182,7 +227,6 @@ class ForeignKeys{
     public void appendPKName(String pkName){
         this.pkNameList.add(pkName);
     }
-
     @Override
     public String toString() {
         String result="";
@@ -208,17 +252,16 @@ class Column{
         this.columnName=columnName;
         this.columnType=columnType;
     }
-
-    public String getMaxValueSQL(){
-        if(columnType=="Integer"){
-            return "select max("+columnName+") from "+schemaName+"."+tableName;
-        }
-        return "";
-    }
-
+//    public String getMaxValueSQL(){
+//        if(columnType=="Integer"){
+//            return "select max("+columnName+") from "+schemaName+"."+tableName;
+//        }
+//        return "";
+//    }
     @Override
     public String toString() {
         String result="";
+        result+=columnName+","+columnType;
         return result;
     }
 }
