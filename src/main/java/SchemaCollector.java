@@ -18,7 +18,8 @@ public class SchemaCollector {
         SchemaCollector sc=new SchemaCollector(connection);
         List<Object> tableNameList=sc.getTableList();
         for(Object table:tableNameList){
-            System.out.println((String)table);
+//            System.out.print((String)table+":");
+//            System.out.println(sc.getFKNameListString(sc.getForeignKeys("tpch",(String)table)));
             System.out.println(sc.getTableInfo("tpch",(String)table));
         }
 //        System.out.print(sc.getTableInfo("tpch","customer"));
@@ -86,9 +87,9 @@ public class SchemaCollector {
         try {
             ResultSet rs = databaseMetaData.getPrimaryKeys(null, schemaName, tableName);
             while (rs.next()) {
-//                String columnName = rs.getString("COLUMN NAME");//列名
+//                String columnName = rs.getString("PK_NAME");//主键名称
 //                short keySeq = rs.getShort("KEY SEQ");//序列号
-                String pkName = rs.getString("PK_NAME");//主键名称
+                String pkName = rs.getString("COLUMN_NAME");
                 pkNameList.add(pkName);
             }
             return pkNameList;
