@@ -7,14 +7,14 @@ import java.sql.*;
  * @Description:
  * @Date: 2019/11/14
  */
-public class Common {
-    static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
+class Common {
+    private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
 
     static Connection connect(String ip, String db, String user, String password) {
         return connect(ip, "3306", db, user, password);
     }
 
-    static Connection connect(String ip, String port, String db, String user, String password) {
+    private static Connection connect(String ip, String port, String db, String user, String password) {
         Connection connection = null;
         String url = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&serverTimezone=UTC", ip, port, db);
         try {
@@ -66,7 +66,7 @@ public class Common {
     /**
      * Given the schema, table and attribute, return if the attribute is a foreign key in that table
      */
-    public static boolean isFK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
+    static boolean isFK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
         String sql = String.format("select count(*) from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA='%s' " +
                         "and TABLE_NAME='%s' and CONSTRAINT_NAME != 'PRIMARY' and COLUMN_NAME='%s'", schema,
                 tableName, attribute);
@@ -82,7 +82,7 @@ public class Common {
     /**
      * Given the schema, table and attribute, return if the attribute is a primary key in that table
      */
-    public static boolean isPK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
+    static boolean isPK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
         String sql = String.format("select count(*) from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA='%s' " +
                         "and TABLE_NAME='%s' and CONSTRAINT_NAME = 'PRIMARY' and COLUMN_NAME='%s'", schema,
                 tableName, attribute);

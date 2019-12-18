@@ -14,12 +14,12 @@ public class LoadingInfoCollect {
         while (true) {
             System.out.println("Please input the query name(type E to exit): ");
             String q = scanner.next();
-            if(q.trim().equals("E")){
+            if (q.trim().equals("E")) {
                 return;
             }
             QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/" + q + ".sql"), "tpch");
             root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
-            ComputingTree.computingSqlUpadteCount(connection, root);
+            ComputingTree.computingSqlUpdateCount(connection, root);
 
             System.out.println("\nConstraint List:");
             ConstraintList constraintList = new ConstraintList(connection);

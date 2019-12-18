@@ -22,7 +22,7 @@ public class JoinInfo {
     private Map<String, String> fkReferenceMap;
     private Map<String, String> tableNickNameMap;
 
-    public Map<String, String> getFkReferenceMap() {
+    Map<String, String> getFkReferenceMap() {
         return fkReferenceMap;
     }
 
@@ -30,7 +30,7 @@ public class JoinInfo {
         this.fkReferenceMap = fkReferenceMap;
     }
 
-    public Map<String, List<String>> getTableAttributeMap() {
+    Map<String, List<String>> getTableAttributeMap() {
         return tableAttributeMap;
     }
 
@@ -38,7 +38,7 @@ public class JoinInfo {
         this.tableAttributeMap = tableAttributeMap;
     }
 
-    public Map<String, KeyType> getKeyInfoMap() {
+    Map<String, KeyType> getKeyInfoMap() {
         return keyInfoMap;
     }
 
@@ -46,7 +46,7 @@ public class JoinInfo {
         this.keyInfoMap = keyInfoMap;
     }
 
-    public JoinInfo(Connection connection, Map<String, String> tableNickNameMap){
+    JoinInfo(Connection connection, Map<String, String> tableNickNameMap){
         this.connection = connection;
         this.tableNickNameMap = tableNickNameMap;
         tableAttributeMap = new HashMap<>();
@@ -71,7 +71,7 @@ public class JoinInfo {
     }
 
 
-    public void parseJoinInfo(String condition) throws Exception{
+    void parseJoinInfo(String condition) throws Exception{
         if(condition != null && condition.contains(" = ")){
             String[] conditions = condition.split(" and ");
             for(String curCondition: conditions) {

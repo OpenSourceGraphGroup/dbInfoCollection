@@ -6,14 +6,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ComputingTree {
-    private static void getAllInfomation(List<String> leafInfo, List<String> selectInfo, List<String> joinInfo, QueryNode node) {
+    private static void getAllInformation(List<String> leafInfo, List<String> selectInfo, List<String> joinInfo, QueryNode node) {
         QueryNode leftChild = node.getLeftChild();
         QueryNode rightChild = node.getRightChild();
         if (leftChild != null) {
-            getAllInfomation(leafInfo, selectInfo, joinInfo, leftChild);
+            getAllInformation(leafInfo, selectInfo, joinInfo, leftChild);
         }
         if (rightChild != null && !(node.getNodeType() == NodeType.JOIN_NODE && !node.getCondition().contains("="))) {
-            getAllInfomation(leafInfo, selectInfo, joinInfo, rightChild);
+            getAllInformation(leafInfo, selectInfo, joinInfo, rightChild);
         }
         String info = node.getCondition();
         if (node.getNodeType() == NodeType.LEAF_NODE) {
@@ -44,7 +44,7 @@ public class ComputingTree {
         List<String> leafInfo = new ArrayList<>();
         List<String> selectInfo = new ArrayList<>();
         List<String> joinInfo = new ArrayList<>();
-        getAllInfomation(leafInfo, selectInfo, joinInfo, joinNode);
+        getAllInformation(leafInfo, selectInfo, joinInfo, joinNode);
         String joinTabels = combineList(leafInfo, " , ");
         String joinKeys = combineList(joinInfo, " and ");
         String selectInfos = combineList(selectInfo, " and ");
@@ -77,20 +77,20 @@ public class ComputingTree {
         node.setSql(sql);
     }
 
-    static void computingSqlUpadteCount(Connection connection, QueryNode root) throws SQLException {
+    static void computingSqlUpdateCount(Connection connection, QueryNode root) throws SQLException {
         QueryNode leftChild = root.getLeftChild();
         QueryNode rightChild = root.getRightChild();
         if (leftChild != null) {
-            computingSqlUpadteCount(connection, leftChild);
+            computingSqlUpdateCount(connection, leftChild);
         }
         if (rightChild != null) {
-            computingSqlUpadteCount(connection, rightChild);
+            computingSqlUpdateCount(connection, rightChild);
         }
         String sql = computingNode(root);
         updateCount(connection, root, sql);
     }
 
-    static void printInfo(QueryNode node) {
+    private static void printInfo(QueryNode node) {
         QueryNode leftChild = node.getLeftChild();
         QueryNode rightChild = node.getRightChild();
         if (leftChild != null) {
@@ -127,7 +127,7 @@ public class ComputingTree {
         QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/2.sql"), "tpch");
         if (root != null) {
             root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
-            ComputingTree.computingSqlUpadteCount(connection, root);
+            ComputingTree.computingSqlUpdateCount(connection, root);
             ComputingTree.printInfo(root);
         }
     }

@@ -57,11 +57,11 @@ public class ConstraintList {
         this.joinCount = joinCount;
     }
 
-    public ConstraintList(Connection connection) {
+    ConstraintList(Connection connection) {
         this.connection = connection;
     }
 
-    public void refineConstraintList() {
+    void refineConstraintList() {
         if (this.tableConstraints.size() == 0) {
             System.out.println("Please generate constraint list first!");
         } else {
@@ -188,7 +188,7 @@ public class ConstraintList {
         }
     }
 
-    public void generateConstraintList(QueryNode root) throws Exception {
+    void generateConstraintList(QueryNode root) throws Exception {
         if (root == null) {
             return;
         }
@@ -280,22 +280,21 @@ public class ConstraintList {
                 throw new Exception("Parse Join Node error! Can not find two join keys!");
             }
             // we will parse join key table first to record the joinCount info which will be used later in fk join table
-            for (int i = 0; i < keys.size(); i++) {
-                if (joinInfo.getKeyInfoMap().get(keys.get(i)) == KeyType.PK) {
-                    sortedKeys.add(0, keys.get(i));
+            for (String key : keys) {
+                if (joinInfo.getKeyInfoMap().get(key) == KeyType.PK) {
+                    sortedKeys.add(0, key);
                 } else {
-                    sortedKeys.add(keys.get(i));
+                    sortedKeys.add(key);
                 }
             }
             List<Integer> pkIdxes = new ArrayList<>();
-            for (int i = 0; i < sortedKeys.size(); i++) {
-                String tableName = sortedKeys.get(i);
+            for (String tableName : sortedKeys) {
                 int idx = updateIdx(tableName);
                 List<String> attributes = joinInfo.getTableAttributeMap().get(tableName);
                 String tableConstraintStr = tableConstraints.get(idx);
                 if (joinInfo.getKeyInfoMap().containsKey(tableName)) {
                     if (joinInfo.getKeyInfoMap().get(tableName) == KeyType.PK) {
-                        int pkIdx = updateIdx(sortedKeys.get(i));
+                        int pkIdx = updateIdx(tableName);
                         pkIdxes.add(pkIdx);
                         tableConstraintStr = updateConstraintStrPK(pkIdx, attributes, tableConstraintStr);
                     } else {
