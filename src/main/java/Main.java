@@ -14,6 +14,7 @@ public class Main {
         String sqlPath = args[4];
 
         Connection connection = Common.connect(ip, dbName, user, password);
+        DatabaseInfoCollector.DatabaseInfoCollect(connection,dbName);
         /* Loading Information Collect */
         LoadingInfoCollect.loadingInfoCollect(connection, sqlPath, dbName);
     }
