@@ -7,9 +7,15 @@ import java.sql.Connection;
  */
 public class Main {
     public static void main(String[] args) throws Exception {
-        Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        String sql = Common.getSql("sql/" + 1 + ".sql");
-        String dbName = "tpch";
+        String ip = args[0];
+        String dbName = args[1];
+        String user = args[2];
+        String password = args[3];
+        String sqlPath = args[4];
+
+        Connection connection = Common.connect(ip, dbName, user, password);
+        /* Loading Information Collect */
+        String sql = Common.getSql(sqlPath);
         LoadingInfoCollect.loadingInfoCollect(connection, sql, dbName);
     }
 }
