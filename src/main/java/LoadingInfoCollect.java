@@ -1,9 +1,7 @@
-import net.sf.jsqlparser.JSQLParserException;
 import org.junit.Test;
 
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.Scanner;
+
 
 /**
  * @Author:
@@ -11,33 +9,41 @@ import java.util.Scanner;
  * @Date: 2019/11/14
  */
 public class LoadingInfoCollect {
+
     @Test
     public void test() throws Exception {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
 
-        for (int i = 1; i <= 16; i++) {
-            String sql = Common.getSql("sql/" + 1 + ".sql");
-            String dbName = "tpch";
-            loadingInfoCollect(connection, sql, dbName);
-        }
+        String sql = Common.getSql("sql/" + 4 + ".sql");
+        String dbName = "tpch";
+        loadingInfoCollect(connection, sql, dbName);
+//        for (int i = 1; i <= 16; i++) {
+//            String sql = Common.getSql("sql/" + i + ".sql");
+//            String dbName = "tpch";
+//            loadingInfoCollect(connection, sql, dbName);
+//        }
     }
 
     static void loadingInfoCollect(Connection connection, String sql, String dbName) throws Exception {
         QueryNode root = QueryTreeGenerator.generate(connection, sql, dbName);
-        root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
+        root.postOrder(queryNode1 -> Common.writeTo(queryNode1.nodeType + " " + queryNode1.condition, sql + ".log"));
         ComputingTree.computingSqlUpdateCount(connection, root);
 
-        System.out.println("\nConstraint List:");
+        StringBuilder sb = new StringBuilder();
+        sb.append("\nConstraint List:\n");
+
         ConstraintList constraintList = new ConstraintList(connection);
         constraintList.generateConstraintList(root);
         for (String output : constraintList.getTableConstraints()) {
-            System.out.println(output);
+            sb.append(output).append("\n");
         }
 
-        System.out.println("\nRefined Constraint List:");
+        sb.append("\nRefined Constraint List:\n");
         constraintList.refineConstraintList();
         for (String output : constraintList.getTableConstraints()) {
-            System.out.println(output);
+            sb.append(output).append("\n");
         }
+
+        Common.writeTo(sb.toString(), sql+".log");
     }
 }

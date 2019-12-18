@@ -15,6 +15,7 @@ public class ConstraintList {
     private Map<String, Integer> usedJoinCount = new HashMap<>();
     private int index = 0;
 
+
     private Map<Integer, Integer> joinCount = new HashMap<>();
 
     public Connection getConnection() {
@@ -63,7 +64,7 @@ public class ConstraintList {
 
     void refineConstraintList() {
         if (this.tableConstraints.size() == 0) {
-            System.out.println("Please generate constraint list first!");
+            Common.writeTo("Please generate constraint list first!", "error.txt");
         } else {
             // record the num of useless join count where the table participates as primary key
             Map<String, Integer> tableRefFilterUselessCount = new HashMap<>();
@@ -302,7 +303,7 @@ public class ConstraintList {
                     }
                     tableConstraints.set(idx, tableConstraintStr);
                 } else {
-                    System.out.println("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!");
+                    Common.writeTo("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!", "error.txt");
                 }
             }
         }

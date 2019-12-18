@@ -40,21 +40,6 @@ public class MyTest {
         joinInfo.parseJoinInfo(condition);
     }
 
-    @Test
-    public void testConstraintList() throws Exception{
-        Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-
-        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/16.sql"), "tpch");
-        root.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
-        ComputingTree ct = new ComputingTree();
-        ct.computingSqlUpadteCount(connection, root);
-
-        ConstraintList constraintList = new ConstraintList(connection);
-        constraintList.generateConstraintList(root);
-        for(String output: constraintList.getTableConstraints()){
-            System.out.println(output);
-        }
-    }
 
     @Test
     public void testRefineConstraintList() throws Exception{

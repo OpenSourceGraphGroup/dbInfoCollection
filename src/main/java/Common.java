@@ -53,6 +53,7 @@ class Common {
     }
 
     static void writeTo(String content, String filePath) {
+        System.out.println(content);
         File file = new File(filePath);
         try {
             Writer out = new FileWriter(file);
