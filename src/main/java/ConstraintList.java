@@ -15,6 +15,22 @@ public class ConstraintList {
     private Map<String, Integer> usedJoinCount = new HashMap<>();
     private int index = 0;
 
+    public static void computeConstraintList(Connection connection, QueryNode root, String sqlName) throws Exception {
+        StringBuilder constraintListString = new StringBuilder();
+        ConstraintList constraintList = new ConstraintList(connection);
+        constraintList.generateConstraintList(root);
+        for (String output : constraintList.getTableConstraints()) {
+            constraintListString.append(output).append("\n");
+        }
+        Common.writeTo(constraintListString.toString(), "out/" + sqlName + ".constraint");
+
+        StringBuilder refinedConstrainListString = new StringBuilder();
+        constraintList.refineConstraintList();
+        for (String output : constraintList.getTableConstraints()) {
+            refinedConstrainListString.append(output).append("\n");
+        }
+        Common.writeTo(refinedConstrainListString.toString(), "out/" + sqlName + ".refinedConstraint");
+    }
 
     private Map<Integer, Integer> joinCount = new HashMap<>();
 
@@ -64,7 +80,7 @@ public class ConstraintList {
 
     void refineConstraintList() {
         if (this.tableConstraints.size() == 0) {
-            Common.writeTo("Please generate constraint list first!", "error.txt");
+            Common.error(System.currentTimeMillis() + " Please generate constraint list first!");
         } else {
             // record the num of useless join count where the table participates as primary key
             Map<String, Integer> tableRefFilterUselessCount = new HashMap<>();
@@ -81,10 +97,10 @@ public class ConstraintList {
 
     private void deleteEmptyConstraint() {
         Iterator<String> iterator = tableConstraints.iterator();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             String tableConstraint = iterator.next();
             String[] constraints = tableConstraint.split(";");
-            if(constraints.length <= 1){
+            if (constraints.length <= 1) {
                 iterator.remove();
             }
         }
@@ -92,37 +108,37 @@ public class ConstraintList {
 
     private void updateFkTableConstraint() {
         for (int idx = 0; idx < tableConstraints.size(); idx++) {
-            String tableConstraint  = tableConstraints.get(idx);
+            String tableConstraint = tableConstraints.get(idx);
             String[] constraints = tableConstraint.split(";");
-            for(int j = 0; j < constraints.length; j++) {
+            for (int j = 0; j < constraints.length; j++) {
                 String constraint = constraints[j].trim();
                 if (constraint.startsWith("[2,")) {
                     LinkedHashSet<String> tableNameSet = getFkRefTableSet(constraint);
                     int i = 0;
-                    constraint = constraint.substring(1, constraint.length()-1);
+                    constraint = constraint.substring(1, constraint.length() - 1);
                     String[] tmpStrs = constraint.split(",");
                     for (String refTable : tableNameSet) {
                         int usedCount = usedJoinCount.getOrDefault(refTable, 1);
-                        int numOne = (int)Math.pow(2, 2 * usedCount - 2);
+                        int numOne = (int) Math.pow(2, 2 * usedCount - 2);
                         int numTwo = 2 * numOne;
                         tmpStrs[4 + i] = " " + numOne;
                         tmpStrs[4 + i + 1] = " " + numTwo;
-                        i+=2;
+                        i += 2;
                         usedCount++;
                         usedJoinCount.put(refTable, usedCount);
                     }
                     StringBuilder tmpConstraintStr = new StringBuilder();
-                    for(String tmpStr : tmpStrs){
+                    for (String tmpStr : tmpStrs) {
                         tmpConstraintStr.append(tmpStr).append(",");
                     }
-                    constraint = tmpConstraintStr.deleteCharAt(tmpConstraintStr.length()-1).toString();
+                    constraint = tmpConstraintStr.deleteCharAt(tmpConstraintStr.length() - 1).toString();
 
                     constraints[j] = " [" + constraint + "]";
                     StringBuilder curConstraintStr = new StringBuilder();
-                    for(String tmpStr : constraints){
+                    for (String tmpStr : constraints) {
                         curConstraintStr.append(tmpStr).append(";");
                     }
-                    curConstraintStr = curConstraintStr.deleteCharAt(curConstraintStr.length()-1);
+                    curConstraintStr = curConstraintStr.deleteCharAt(curConstraintStr.length() - 1);
                     tableConstraints.set(idx, curConstraintStr.toString());
                 }
             }
@@ -303,7 +319,7 @@ public class ConstraintList {
                     }
                     tableConstraints.set(idx, tableConstraintStr);
                 } else {
-                    Common.writeTo("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!", "error.txt");
+                    Common.error(System.currentTimeMillis() + " Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!");
                 }
             }
         }

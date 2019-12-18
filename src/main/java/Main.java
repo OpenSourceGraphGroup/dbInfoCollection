@@ -6,7 +6,7 @@ import java.sql.Connection;
  * @Date: 2019/12/18
  */
 public class Main {
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
         String ip = args[0];
         String dbName = args[1];
         String user = args[2];
@@ -15,7 +15,6 @@ public class Main {
 
         Connection connection = Common.connect(ip, dbName, user, password);
         /* Loading Information Collect */
-        String sql = Common.getSql(sqlPath);
-        LoadingInfoCollect.loadingInfoCollect(connection, sql, dbName);
+        LoadingInfoCollect.loadingInfoCollect(connection, sqlPath, dbName);
     }
 }

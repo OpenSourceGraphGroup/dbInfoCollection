@@ -1,6 +1,8 @@
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * @Author:
@@ -20,7 +22,6 @@ class Common {
         try {
             Class.forName(JDBC_DRIVER);
             connection = DriverManager.getConnection(url, user, password);
-            System.out.println(String.format("Connect to %s in %s", db, ip));
         } catch (SQLException | ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -52,11 +53,27 @@ class Common {
         }
     }
 
+    enum WriteType {Override, Append}
+
+    static void log(String content) {
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        writeTo(df.format(new Date()) + "\t" + content, "out/log.log", WriteType.Append);
+    }
+
+    static void error(String content) {
+        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        writeTo(df.format(new Date()) + "\t" + content, "out/error.log", WriteType.Append);
+    }
+
     static void writeTo(String content, String filePath) {
-        System.out.println(content);
+        writeTo(content, filePath, WriteType.Override);
+    }
+
+    private static void writeTo(String content, String filePath, WriteType writeType) {
+        System.out.print(content);
         File file = new File(filePath);
         try {
-            Writer out = new FileWriter(file);
+            Writer out = new FileWriter(file, writeType.equals(WriteType.Append));
             out.write(content);
             out.close();
         } catch (IOException e) {
