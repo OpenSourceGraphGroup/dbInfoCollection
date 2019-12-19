@@ -63,7 +63,12 @@ public class QueryTreeGenerator {
         if (!plan.subQueries.isEmpty()) {
             queryNode = generate(plan.subQueries, 0, tableAlias, queryNode, dbName);
         }
-        return generate(queryPlan, 1, tableAlias, queryNode, dbName);
+        QueryNode result = generate(queryPlan, 1, tableAlias, queryNode, dbName);
+        if (result != null) {
+            Common.log("QueryTreeGenerator:\r\n");
+            result.postOrder(queryNode1 -> Common.log(queryNode1.toString()));
+        }
+        return result;
     }
 
     private static QueryNode generate(List<QueryPlan> queryPlan, int start, Map<String, String> tableAlias, QueryNode queryNode, String dbName) {

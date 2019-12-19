@@ -1,7 +1,5 @@
 import java.math.BigDecimal;
 import java.sql.*;
-import java.text.DecimalFormat;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -10,19 +8,19 @@ import java.util.List;
  * @author: Jiaye Liu
  * @create: 2019-12-03 16:27
  **/
-public class DataInformationCollector {
+public class DataInfoCollector {
     private Statement st = null;
 
     public static void main(String arg[]) {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
         SchemaCollector sc = new SchemaCollector(connection);
         long tableSize = Long.parseLong(sc.getTableSize("tpch", "lineitem"));
-        DataInformationCollector dic = new DataInformationCollector(connection);
+        DataInfoCollector dic = new DataInfoCollector(connection);
         String result = dic.getDataStatistics("tpch", "lineitem", tableSize, sc.getTableColumns("tpch", "lineitem"));
         System.out.print(result);
     }
 
-    private DataInformationCollector(Connection conn) {
+    public DataInfoCollector(Connection conn) {
         try {
             DatabaseMetaData databaseMetaData = (DatabaseMetaData) conn.getMetaData();
             st = conn.createStatement();
@@ -31,7 +29,7 @@ public class DataInformationCollector {
         }
     }
 
-    private String getDataStatistics(String schemaName, String tableName, long tableSize, List<Object> columns) {
+    public String getDataStatistics(String schemaName, String tableName, long tableSize, List<Object> columns) {
         StringBuilder result = new StringBuilder();
         for (Object c : columns) {
             Column tmp = (Column) c;
@@ -76,11 +74,13 @@ public class DataInformationCollector {
             ResultSet rs = st.executeQuery(c.getNullSizeSQL());
             rs.next();
             long nullSize = Long.parseLong(rs.getString(1));
+            if ((double)tableSize<=0)
+                return "0.00; ";
             double nullRatio = nullSize / (double) tableSize;
             return ratioToString(nullRatio, 2) + "; ";
         } catch (SQLException e) {
             e.printStackTrace();
-            return ";";
+            return "0.00; ";
         }
 
     }

@@ -22,6 +22,10 @@ class QueryNode {
     String condition;
     String sql;
 
+    public String toString() {
+        return this.nodeType + " " + this.condition + "\r\n";
+    }
+
     public QueryNode(NodeType type, String condition) {
         this.count = 0;
         this.nodeType = type;
@@ -63,11 +67,11 @@ class QueryNode {
         processor.process(this);
     }
 
-    void postOrderNodes(List<QueryNode> nodes){
-        if(this.leftChild != null){
+    void postOrderNodes(List<QueryNode> nodes) {
+        if (this.leftChild != null) {
             this.leftChild.postOrderNodes(nodes);
         }
-        if(this.rightChild != null){
+        if (this.rightChild != null) {
             this.rightChild.postOrderNodes(nodes);
         }
 
@@ -106,11 +110,11 @@ class QueryNode {
         this.condition = condition;
     }
 
-    public String getSql(){
+    public String getSql() {
         return sql;
     }
 
-    public void setSql(String sql){
+    public void setSql(String sql) {
         this.sql = sql;
     }
 }

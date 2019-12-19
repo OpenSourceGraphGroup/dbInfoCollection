@@ -1,7 +1,6 @@
 
 import java.sql.Connection;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @Author: Zhengmin Lai
@@ -32,12 +31,9 @@ public class ConstraintList {
     private List<String> tableConstraints = new LinkedList<>();
     private Set<String> parsedConditions = new HashSet<>();
     private Map<String, String> tableNickNameMap = new HashMap<>();
-    private Map<String, Integer> usedJoinCountMap = new HashMap<>();
     private Map<String, List<Pair<String, Integer>>> tableRefNumMap = new HashMap<>();
-    private int index = 0;
-
-
     private Map<Integer, Integer> joinCount = new HashMap<>();
+    private int index = 0;
 
     public Connection getConnection() {
         return connection;
@@ -81,6 +77,74 @@ public class ConstraintList {
 
     ConstraintList(Connection connection) {
         this.connection = connection;
+    }
+
+    public static void computeConstraintList(Connection connection, QueryNode root, String sqlName) throws Exception {
+        StringBuilder constraintListString = new StringBuilder();
+        ConstraintList constraintList = new ConstraintList(connection);
+        constraintList.generateConstraintList(root);
+        for (String output : constraintList.getTableConstraints()) {
+            constraintListString.append(output).append("\n");
+        }
+        Common.writeTo(constraintListString.toString(), "out/" + sqlName + ".constraint");
+
+        StringBuilder refinedConstrainListString = new StringBuilder();
+        constraintList.refineConstraintList();
+        for (String output : constraintList.getTableConstraints()) {
+            refinedConstrainListString.append(output).append("\n");
+        }
+        Common.writeTo(refinedConstrainListString.toString(), "out/" + sqlName + ".refinedConstraint");
+    }
+
+    public void generateConstraintList(QueryNode root) throws Exception {
+        if (root == null) {
+            return;
+        }
+
+        List<QueryNode> queryNodeList = new ArrayList<>();
+        root.postOrderNodes(queryNodeList);
+
+        for (QueryNode node : queryNodeList) {
+            double filterRate = 0;
+            if (node.parent != null) {
+                if (node.count != 0)
+                    filterRate = (double) node.parent.count / (double) node.count;
+                else
+                    filterRate = 1.0;
+            }
+            if (node.nodeType == NodeType.LEAF_NODE) {
+                parseLeafNodeCondition(node.condition);
+                if (node.parent != null) {
+                    if (node.parent.nodeType == NodeType.SELECT_NODE) {
+                        parseParentSelect(node, filterRate);
+                    } else {
+                        // parent is a join node, I need to know the table name, and if there exists any attributes
+                        // participating in this join as primary key or foreign key
+                        parseParentJoin(node, filterRate);
+                    }
+                }
+            } else if (node.nodeType == NodeType.SELECT_NODE) {
+                if (node.parent != null) {
+                    if (node.parent.nodeType == NodeType.JOIN_NODE) {
+                        parseParentJoin(node, filterRate);
+                    } else {
+                        throw new Exception("I think there must be sth wrong with the parsed tree, where there exists " +
+                                "a SELECT NODE whose parent node is also a SELECT NODE");
+                    }
+                }
+            } else if (node.nodeType == NodeType.JOIN_NODE) {
+                if (node.parent != null) {
+                    if (node.parent.nodeType == NodeType.JOIN_NODE) {
+                        parseParentJoin(node, filterRate);
+                    } else if (node.parent.nodeType == NodeType.SELECT_NODE) {
+                        parseParentSelect(node, filterRate);
+                    } else {
+                        throw new Exception("I think there must be sth wrong with the parsed tree, where there exists " +
+                                "a JOIN NODE whose parent node is a LEAF NODE");
+                    }
+                }
+            }
+        }
     }
 
     public void refineConstraintList() {
@@ -135,8 +199,6 @@ public class ConstraintList {
                         tmpStrs[4 + i] = " " + numOne;
                         tmpStrs[4 + i + 1] = " " + numTwo;
                         i += 2;
-                        usedCount++;
-                        usedJoinCountMap.put(refTable, usedCount);
                     }
                     StringBuilder tmpConstraintStr = new StringBuilder();
                     for (String tmpStr : tmpStrs) {
@@ -236,57 +298,6 @@ public class ConstraintList {
                         }
                         curConstraintsStr = curConstraintsStr.replace("; " + constraint, "");
                         this.tableConstraints.set(i, curConstraintsStr);
-                    }
-                }
-            }
-        }
-    }
-
-    void generateConstraintList(QueryNode root) throws Exception {
-        if (root == null) {
-            return;
-        }
-
-        List<QueryNode> queryNodeList = new ArrayList<>();
-        root.postOrderNodes(queryNodeList);
-
-        for (QueryNode node : queryNodeList) {
-            double filterRate = 0;
-            if (node.parent != null) {
-                if (node.count != 0)
-                    filterRate = (double) node.parent.count / (double) node.count;
-                else
-                    filterRate = 1.0;
-            }
-            if (node.nodeType == NodeType.LEAF_NODE) {
-                parseLeafNodeCondition(node.condition);
-                if (node.parent != null) {
-                    if (node.parent.nodeType == NodeType.SELECT_NODE) {
-                        parseParentSelect(node, filterRate);
-                    } else {
-                        // parent is a join node, I need to know the table name, and if there exists any attributes
-                        // participating in this join as primary key or foreign key
-                        parseParentJoin(node, filterRate);
-                    }
-                }
-            } else if (node.nodeType == NodeType.SELECT_NODE) {
-                if (node.parent != null) {
-                    if (node.parent.nodeType == NodeType.JOIN_NODE) {
-                        parseParentJoin(node, filterRate);
-                    } else {
-                        throw new Exception("I think there must be sth wrong with the parsed tree, where there exists " +
-                                "a SELECT NODE whose parent node is also a SELECT NODE");
-                    }
-                }
-            } else if (node.nodeType == NodeType.JOIN_NODE) {
-                if (node.parent != null) {
-                    if (node.parent.nodeType == NodeType.JOIN_NODE) {
-                        parseParentJoin(node, filterRate);
-                    } else if (node.parent.nodeType == NodeType.SELECT_NODE) {
-                        parseParentSelect(node, filterRate);
-                    } else {
-                        throw new Exception("I think there must be sth wrong with the parsed tree, where there exists " +
-                                "a JOIN NODE whose parent node is a LEAF NODE");
                     }
                 }
             }
