@@ -57,12 +57,12 @@ public class MyTest {
         constraintList.setTableMap(tableMap);
 
         List<String> tableConstraints = new ArrayList<>();
-        tableConstraints.add("[A]; [1, a, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512]");
+        tableConstraints.add("[A]; [1, a, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048]");
         tableConstraints.add("[B]; [2, a, 0.2, A.a, 1, 2]");
-        tableConstraints.add("[C]; [2, a, 0.2, A.a, 4, 8]");
-        tableConstraints.add("[D]; [2, a, 1, A.a, 16, 32]");
+        tableConstraints.add("[C]; [2, a, 0.2, A.a, 16,32]; [2, a, 0.2, A.a, 1024, 2048]");
+        tableConstraints.add("[D]; [2, a, 1, A.a, 256, 512]");
         tableConstraints.add("[E]; [2, a, 0.2, A.a, 64, 128]");
-        tableConstraints.add("[F]; [2, a, 1, A.a, 256, 512]");
+        tableConstraints.add("[F]; [2, a, 0.3, A.a, 4, 8]");
         tableConstraints.add("[G]; [1, g, 1, 2]");
         tableConstraints.add("[H]; [2, g, 1, G.g, 1, 2]");
         constraintList.setTableConstraints(tableConstraints);

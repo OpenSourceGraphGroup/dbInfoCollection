@@ -1,18 +1,39 @@
 
 import java.sql.Connection;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @Author: Zhengmin Lai
  * @Description: Parse Constraint List
  */
 public class ConstraintList {
+    class Pair<A, B> {
+        public A first;
+        public B second;
+
+        public Pair(A first, B second) {
+            this.first = first;
+            this.second = second;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof Pair) {
+                Pair another = (Pair) obj;
+                return another.first.equals(this.first) && another.second.equals(this.second);
+            }
+            return super.equals(obj);
+        }
+    }
+
     private Connection connection;
     private Map<String, Integer> tableMap = new HashMap<>();
     private List<String> tableConstraints = new LinkedList<>();
     private Set<String> parsedConditions = new HashSet<>();
     private Map<String, String> tableNickNameMap = new HashMap<>();
-    private Map<String, Integer> usedJoinCount = new HashMap<>();
+    private Map<String, Integer> usedJoinCountMap = new HashMap<>();
+    private Map<String, List<Pair<String, Integer>>> tableRefNumMap = new HashMap<>();
     private int index = 0;
 
 
@@ -62,7 +83,7 @@ public class ConstraintList {
         this.connection = connection;
     }
 
-    void refineConstraintList() {
+    public void refineConstraintList() {
         if (this.tableConstraints.size() == 0) {
             Common.writeTo("Please generate constraint list first!", "error.txt");
         } else {
@@ -81,52 +102,84 @@ public class ConstraintList {
 
     private void deleteEmptyConstraint() {
         Iterator<String> iterator = tableConstraints.iterator();
-        while (iterator.hasNext()){
+        while (iterator.hasNext()) {
             String tableConstraint = iterator.next();
             String[] constraints = tableConstraint.split(";");
-            if(constraints.length <= 1){
+            if (constraints.length <= 1) {
                 iterator.remove();
             }
         }
     }
 
     private void updateFkTableConstraint() {
+        parseTableRefNumMap();
+
         for (int idx = 0; idx < tableConstraints.size(); idx++) {
-            String tableConstraint  = tableConstraints.get(idx);
+            String tableConstraint = tableConstraints.get(idx);
             String[] constraints = tableConstraint.split(";");
-            for(int j = 0; j < constraints.length; j++) {
+            String curTableName = constraints[0].substring(1, constraints[0].length() - 1);
+            for (int j = 0; j < constraints.length; j++) {
                 String constraint = constraints[j].trim();
                 if (constraint.startsWith("[2,")) {
                     LinkedHashSet<String> tableNameSet = getFkRefTableSet(constraint);
                     int i = 0;
-                    constraint = constraint.substring(1, constraint.length()-1);
+                    constraint = constraint.substring(1, constraint.length() - 1);
                     String[] tmpStrs = constraint.split(",");
                     for (String refTable : tableNameSet) {
-                        int usedCount = usedJoinCount.getOrDefault(refTable, 1);
-                        int numOne = (int)Math.pow(2, 2 * usedCount - 2);
+                        int num = Integer.parseInt(tmpStrs[4 + i].trim());
+                        Pair<String, Integer> pair = new Pair<>(curTableName, num);
+                        List<Pair<String, Integer>> list = tableRefNumMap.get(refTable);
+                        int usedCount = list.indexOf(pair) + 1;
+                        int numOne = (int) Math.pow(2, 2 * usedCount - 2);
                         int numTwo = 2 * numOne;
                         tmpStrs[4 + i] = " " + numOne;
                         tmpStrs[4 + i + 1] = " " + numTwo;
-                        i+=2;
+                        i += 2;
                         usedCount++;
-                        usedJoinCount.put(refTable, usedCount);
+                        usedJoinCountMap.put(refTable, usedCount);
                     }
                     StringBuilder tmpConstraintStr = new StringBuilder();
-                    for(String tmpStr : tmpStrs){
+                    for (String tmpStr : tmpStrs) {
                         tmpConstraintStr.append(tmpStr).append(",");
                     }
-                    constraint = tmpConstraintStr.deleteCharAt(tmpConstraintStr.length()-1).toString();
+                    constraint = tmpConstraintStr.deleteCharAt(tmpConstraintStr.length() - 1).toString();
 
                     constraints[j] = " [" + constraint + "]";
                     StringBuilder curConstraintStr = new StringBuilder();
-                    for(String tmpStr : constraints){
+                    for (String tmpStr : constraints) {
                         curConstraintStr.append(tmpStr).append(";");
                     }
-                    curConstraintStr = curConstraintStr.deleteCharAt(curConstraintStr.length()-1);
+                    curConstraintStr.deleteCharAt(curConstraintStr.length() - 1);
                     tableConstraints.set(idx, curConstraintStr.toString());
                 }
             }
         }
+    }
+
+    private void parseTableRefNumMap() {
+        for (String tableConstraint : tableConstraints) {
+            String[] constraints = tableConstraint.split(";");
+            String curTableName = constraints[0].substring(1, constraints[0].length() - 1);
+            for (String s : constraints) {
+                String constraint = s.trim();
+                if (constraint.startsWith("[2,")) {
+                    LinkedHashSet<String> refTableNameSet = getFkRefTableSet(constraint);
+                    int i = 0;
+                    String[] tmpStrs = constraint.split(",");
+                    for (String refTable : refTableNameSet) {
+                        List<Pair<String, Integer>> list = tableRefNumMap.getOrDefault(refTable, new ArrayList<>());
+                        int startIdx = Integer.parseInt(tmpStrs[4 + i].trim());
+                        list.add(new Pair<>(curTableName, startIdx));
+                        tableRefNumMap.put(refTable, list);
+                        i += 2;
+                    }
+                }
+            }
+        }
+
+        tableRefNumMap.forEach((k, v) -> {
+            v.sort(Comparator.comparingInt(o -> o.second));
+        });
     }
 
     private LinkedHashSet<String> getFkRefTableSet(String fkConstraint) {
