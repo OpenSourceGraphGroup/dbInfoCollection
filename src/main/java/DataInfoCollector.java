@@ -74,11 +74,13 @@ public class DataInfoCollector {
             ResultSet rs = st.executeQuery(c.getNullSizeSQL());
             rs.next();
             long nullSize = Long.parseLong(rs.getString(1));
+            if ((double)tableSize<=0)
+                return "0.00; ";
             double nullRatio = nullSize / (double) tableSize;
             return ratioToString(nullRatio, 2) + "; ";
         } catch (SQLException e) {
             e.printStackTrace();
-            return ";";
+            return "0.00; ";
         }
 
     }
