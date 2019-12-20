@@ -13,13 +13,13 @@ public class LoadingInfoCollect {
     public void test() {
         String dbName = "tpch";
         Connection connection = Common.connect("59.78.194.63", dbName, "root", "OpenSource");
-        String sqlPath = "sql/" + 4 + ".sql";
-        //loadingInfoCollect(connection, sqlPath, dbName);
+        String sqlPath = "sql/" + 16 + ".sql";
+        loadingInfoCollect(connection, sqlPath, dbName);
 
-        for (int i = 1; i <= 16; i++) {
-            sqlPath = "sql/" + i + ".sql";
-            loadingInfoCollect(connection, sqlPath, dbName);
-        }
+//        for (int i = 1; i <= 16; i++) {
+//            sqlPath = "sql/" + i + ".sql";
+//            loadingInfoCollect(connection, sqlPath, dbName);
+//        }
     }
 
     static void loadingInfoCollect(Connection connection, String sqlPath, String dbName) {
