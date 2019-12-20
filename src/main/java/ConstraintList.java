@@ -149,7 +149,7 @@ public class ConstraintList {
 
     public void refineConstraintList() {
         if (this.tableConstraints.size() == 0) {
-            Common.writeTo("Please generate constraint list first!", "error.txt");
+            Common.error("Please generate constraint list first!");
         } else {
             // record the num of useless join count where the table participates as primary key
             Map<String, Integer> tableRefFilterUselessCount = new HashMap<>();
@@ -239,9 +239,7 @@ public class ConstraintList {
             }
         }
 
-        tableRefNumMap.forEach((k, v) -> {
-            v.sort(Comparator.comparingInt(o -> o.second));
-        });
+        tableRefNumMap.forEach((k, v) -> v.sort(Comparator.comparingInt(o -> o.second)));
     }
 
     private LinkedHashSet<String> getFkRefTableSet(String fkConstraint) {
@@ -367,7 +365,7 @@ public class ConstraintList {
                     }
                     tableConstraints.set(idx, tableConstraintStr);
                 } else {
-                    Common.writeTo("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!", "error.txt");
+                    Common.error("Can not find table " + tableName + " in hashmap `isPrimaryKeyInfoMap`!");
                 }
             }
         }

@@ -57,16 +57,16 @@ class Common {
     enum WriteType {Override, Append}
 
     static void log(String content) {
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/log.log", WriteType.Append);
     }
     static void info(String content){
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/info.log", WriteType.Append);
     }
 
     static void error(String content) {
-        SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/error.log", WriteType.Append);
     }
 
