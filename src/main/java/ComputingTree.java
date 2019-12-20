@@ -77,29 +77,37 @@ public class ComputingTree {
         node.setSql(sql);
     }
 
-    static void computingSqlUpdateCount(Connection connection, QueryNode root) {
-        if (root == null) return;
-        root.postOrder(queryNode -> {
-            String sql1 = computingNode(root);
-            try {
-                updateCount(connection, root, sql1);
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-        });
+    static void computingSqlUpdateCount(Connection connection, QueryNode root) throws SQLException {
+        QueryNode leftChild = root.getLeftChild();
+        QueryNode rightChild = root.getRightChild();
+        if (leftChild != null) {
+            computingSqlUpdateCount(connection, leftChild);
+        }
+        if (rightChild != null) {
+            computingSqlUpdateCount(connection, rightChild);
+        }
+        String sql = computingNode(root);
+        updateCount(connection, root, sql);
         Common.log("ComputingTree:\r\n");
         printInfo(root);
     }
 
     private static void printInfo(QueryNode node) {
-        node.postOrder(queryNode -> {
-            NodeType type = node.getNodeType();
-            String sql = node.getSql();
-            String condition = node.getCondition();
-            int count = node.getCount();
-            Common.log("Node " + "#type: " + type + " #sql: " + sql + "\r\n" +
-                    "\tNode " + "#condi: " + condition + " #count: " + count + "\r\n");
-        });
+        QueryNode leftChild = node.getLeftChild();
+        QueryNode rightChild = node.getRightChild();
+        if (leftChild != null) {
+            printInfo(leftChild);
+        }
+        if (rightChild != null) {
+            printInfo(rightChild);
+        }
+        NodeType type = node.getNodeType();
+        String sql = node.getSql();
+        String condition = node.getCondition();
+        int count = node.getCount();
+        Common.log("Node " + "#type: " + type + " #sql: " + sql + "\r\n" +
+                "\tNode " + "#condi: " + condition + " #count: " + count + "\r\n");
+
     }
 
     private static String combineList(List<String> list, String sep) {
@@ -116,7 +124,7 @@ public class ComputingTree {
     }
 
     @Test
-    public void testComputingTree() throws JSQLParserException {
+    public void testComputingTree() throws JSQLParserException, SQLException {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
         QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/2.sql"), "tpch");
         if (root != null) {
