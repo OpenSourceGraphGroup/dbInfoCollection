@@ -19,7 +19,10 @@ public class SchemaCollector {
         List<Object> tableNameList=sc.getTableList();
         for(Object table:tableNameList){
 //            System.out.print((String)table+":");
-//            System.out.println(sc.getFKNameListString(sc.getForeignKeys("tpch",(String)table)));
+//            String fk_info = sc.getFKNameListString(sc.getForeignKeys("tpch",(String)table));
+//            if (!fk_info.equals("")) {
+//                System.out.println((String)table + ": " + fk_info);
+//            }
             System.out.println(sc.getTableInfo("tpch",(String)table));
         }
 //        System.out.print(sc.getTableInfo("tpch","customer"));
@@ -127,17 +130,15 @@ public class SchemaCollector {
     public List<Object> getForeignKeys(String schemaName, String tableName) {
         List<Object> ekList = new ArrayList<Object>();
         try {
-            ResultSet rs = databaseMetaData.getExportedKeys(null, schemaName, tableName);
+            ResultSet rs = databaseMetaData.getImportedKeys(null, schemaName, tableName);
             while (rs.next()) {
                 String fkColumnName = rs.getString("FKCOLUMN_NAME");
-                String fkTableName = rs.getString("FKTABLE_NAME");
-                ForeignKeys ek=new ForeignKeys(fkColumnName,fkTableName);
-                ResultSet rsTmp=databaseMetaData.getPrimaryKeys(null,schemaName,tableName);
-                while(rsTmp.next()){
-                    String pkName= rsTmp.getString("PK_NAME");
-                    ek.appendPKName(pkName);
-                }
-                ekList.add(ek);
+                String pkTableName = rs.getString("PKTABLE_NAME");
+                String pkColumnName = rs.getString("PKCOLUMN_NAME");
+
+                ForeignKeys fk = new ForeignKeys(fkColumnName, pkTableName);
+                fk.appendPKName(pkColumnName);
+                ekList.add(fk);
             }
             return ekList;
         } catch (SQLException e) {

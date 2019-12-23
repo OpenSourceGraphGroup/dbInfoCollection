@@ -10,18 +10,20 @@ import java.util.List;
  **/
 public class DataInfoCollector {
     private Statement st = null;
+    private Connection connection = null;
 
     public static void main(String arg[]) {
-        Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        SchemaCollector sc = new SchemaCollector(connection);
+        Connection conn = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
+        SchemaCollector sc = new SchemaCollector(conn);
         long tableSize = Long.parseLong(sc.getTableSize("tpch", "lineitem"));
-        DataInfoCollector dic = new DataInfoCollector(connection);
+        DataInfoCollector dic = new DataInfoCollector(conn);
         String result = dic.getDataStatistics("tpch", "lineitem", tableSize, sc.getTableColumns("tpch", "lineitem"));
         System.out.print(result);
     }
 
     public DataInfoCollector(Connection conn) {
         try {
+            connection = conn;
             DatabaseMetaData databaseMetaData = (DatabaseMetaData) conn.getMetaData();
             st = conn.createStatement();
         } catch (SQLException e) {
@@ -36,138 +38,92 @@ public class DataInfoCollector {
             String dataInfo = "";
             switch (tmp.columnType.toUpperCase()) {
                 case "INTEGER":
-                    dataInfo += getInteger(tableSize, tmp) + "\n";
-                    break;
-                case "REAL":
-                    dataInfo += getReal(tableSize, tmp) + "\n";
-                    break;
-                case "DECIMAL":
-                    dataInfo += getReal(tableSize, tmp) + "\n";
+                    dataInfo += getInteger(tableSize, tmp);
                     break;
                 case "VARCHAR":
-                    dataInfo += getVarchar(tableSize, tmp) + "\n";
+                    dataInfo += getVarchar(tableSize, tmp);
                     break;
                 case "BOOL":
-                    dataInfo += getBool(tableSize, tmp) + "\n";
+                    dataInfo += getBool(tableSize, tmp);
                     break;
+                case "REAL":
+                case "DECIMAL":
                 case "DATETIME":
-                    dataInfo += getReal(tableSize, tmp) + "\n";
-                    break;
                 case "DATE":
-                    dataInfo += getReal(tableSize, tmp) + "\n";
+                    dataInfo += getReal(tableSize, tmp);
             }
-//            System.out.print(dataInfo);
-            result.append(dataInfo);
+            result.append(dataInfo+"\n");
+            System.out.println(dataInfo);
         }
         return result.toString().toUpperCase();
     }
 
-    private String ratioToString(double ratio, int precision) {
-        BigDecimal bd = new BigDecimal(String.valueOf(ratio));
-        bd = bd.setScale(precision, BigDecimal.ROUND_HALF_UP);
-        return "" + bd;
-    }
-
-    private String getNullRation(long tableSize, Column c) {
-        //空值占比
-        try {
-            ResultSet rs = st.executeQuery(c.getNullSizeSQL());
-            rs.next();
-            long nullSize = Long.parseLong(rs.getString(1));
-            if ((double)tableSize<=0)
-                return "0.00; ";
-            double nullRatio = nullSize / (double) tableSize;
-            return ratioToString(nullRatio, 2) + "; ";
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return "0.00; ";
-        }
-
-    }
-
     private String getInteger(long tableSize, Column c) {
-        String result = "D[" + c.tableName + "." + c.columnName + "; ";
-        try {
-            //空值占比
-            result += getNullRation(tableSize, c);
-            //cardinality
-            ResultSet rs = st.executeQuery(c.getDistinctSizeSQL());
-            rs.next();
-            long distinctSize = Long.parseLong(rs.getString(1));
-//            double cardinality= distinctSize/tableSize;
-//            result+=ratioToString(cardinality,0);
-            result += distinctSize + "; ";
-            //最大值
-            rs = st.executeQuery(c.getMinValueSQL());
-            rs.next();
-            result += rs.getString(1) + "; ";
-            //最小值
-            rs = st.executeQuery(c.getMaxValueSQL());
-            rs.next();
-            result += rs.getString(1) + "]";
-            return result;
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return "";
-        }
+        double nullRatio = getNullRatio(tableSize, c);
+        long cardinality = getLongValue(c.getDistinctSizeSQL());
+        String maxValue = getStringValue(c.getMaxValueSQL());
+        String minValue = getStringValue(c.getMinValueSQL());
+
+        // result
+        return String.format("D[%s.%s; %.3f; %d; %s; %s]", c.tableName, c.columnName, nullRatio, cardinality, minValue, maxValue);
     }
 
     private String getReal(long tableSize, Column c) {
-        String result = "D[" + c.tableName + "." + c.columnName + "; ";
+        double nullRatio = getNullRatio(tableSize, c);
+        String maxValue = getStringValue(c.getMaxValueSQL());
+        String minValue = getStringValue(c.getMinValueSQL());
+
+        // result
+        return String.format("D[%s.%s; %.3f; %s; %s]", c.tableName, c.columnName, nullRatio, minValue, maxValue);
+    }
+
+    private String getVarchar(long tableSize, Column c) {
+        double nullRatio = getNullRatio(tableSize, c);
+        String avgLength = getStringValue(c.getAvgLengthSQL());
+        long maxLength = getLongValue(c.getMaxLengthSQL());
+
+        // result
+        return String.format("D[%s.%s; %.3f; %s; %d]", c.tableName, c.columnName, nullRatio, avgLength, maxLength);
+    }
+
+    private String getBool(long tableSize, Column c) {
+        // null ratio
+        double nullRatio = getNullRatio(tableSize, c);
+
+        // true ratio
+        long trueSize = getLongValue(c.getTrueSizeSQL());
+        long notNullSize = getLongValue(c.getNotNullSizeSQL());
+        double trueRatio = notNullSize <= 0 ? 0 : trueSize / (double) notNullSize;
+
+        // result
+        return String.format("D[%s.%s; %.3f; %.3f]", c.tableName, c.columnName, nullRatio, trueRatio);
+    }
+
+    public double getNullRatio (long tableSize, Column c) {
+        long nullSize = getLongValue(c.getNullSizeSQL());
+        return tableSize <= 0 ? 0 : nullSize / (double)tableSize;
+    }
+
+    private String getStringValue(String sql) {
+        ResultSet rs = Common.query(connection, sql);
         try {
-            //空值占比
-            result += getNullRation(tableSize, c);
-            //最大值
-            ResultSet rs = st.executeQuery(c.getMinValueSQL());
             rs.next();
-            result += rs.getString(1) + "; ";
-            //最小值
-            rs = st.executeQuery(c.getMaxValueSQL());
-            rs.next();
-            result += rs.getString(1) + "]";
-            return result;
+            return rs.getString(1);
         } catch (SQLException e) {
             e.printStackTrace();
             return "";
         }
     }
 
-    private String getVarchar(long tableSize, Column c) {
-        String result = "D[" + c.tableName + "." + c.columnName + "; ";
+    private long getLongValue(String sql) {
+        ResultSet rs = Common.query(connection, sql);
         try {
-            //空值占比
-            result += getNullRation(tableSize, c);
-            //平均长度
-            ResultSet rs = st.executeQuery(c.getSumLengthSQL());
             rs.next();
-            long sumLength = Long.parseLong(rs.getString(1));
-            double avg = sumLength / (double) tableSize;
-            result += ratioToString(avg, 1) + "; ";
-            //最大长度
-            rs = st.executeQuery(c.getMaxLengthSQL());
-            rs.next();
-            result += rs.getString(1) + "]";
-            return result;
+            return rs.getLong(1);
         } catch (SQLException e) {
             e.printStackTrace();
+            return -1;
         }
-        return "";
-    }
-
-    private String getBool(long tableSize, Column c) {
-        String result = "D[" + c.tableName + "." + c.columnName + "; ";
-        try {
-            //空值占比
-            result += getNullRation(tableSize, c);
-            ResultSet rs = st.executeQuery(c.getTrueSizeSQL());
-            long trueSize = Long.parseLong(rs.getString(1));
-            double trueRatio = trueSize / (double) tableSize;
-            result += ratioToString(trueRatio, 1) + "]";
-            return result;
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "";
     }
 
 }
@@ -186,31 +142,35 @@ class Column {
     }
 
     String getDistinctSizeSQL() {
-        return "select COUNT(DISTINCT " + columnName + ") from " + schemaName + "." + tableName;
+        return String.format("select COUNT(DISTINCT %s) from %s.%s", columnName, schemaName, tableName);
     }
 
     String getMaxValueSQL() {
-        return "select MAX(" + columnName + ") from " + schemaName + "." + tableName;
+        return String.format("select MAX(%s) from %s.%s", columnName, schemaName, tableName);
     }
 
     String getMinValueSQL() {
-        return "select MIN(" + columnName + ") from " + schemaName + "." + tableName;
+        return String.format("select MIN(%s) from %s.%s", columnName, schemaName, tableName);
     }
 
     String getNullSizeSQL() {
-        return "select COUNT(*) from " + schemaName + "." + tableName + " where ISNULL(" + columnName + ")";
+        return String.format("select COUNT(*) from %s.%s where %s is null", schemaName, tableName, columnName);
     }
 
-    String getMaxLengthSQL() {
-        return "select MAX(LENGTH(" + columnName + ")) from " + schemaName + "." + tableName;
-    }
-
-    String getSumLengthSQL() {
-        return "select SUM(LENGTH(" + columnName + ")) from " + schemaName + "." + tableName;
+    String getNotNullSizeSQL() {
+        return String.format("select COUNT(*) from %s.%s where %s is not null", schemaName, tableName, columnName);
     }
 
     String getTrueSizeSQL() {
-        return "select COUNT(*) from " + schemaName + "." + tableName + " where " + columnName + "=true";
+        return String.format("select COUNT(*) from %s.%s where %s = true", schemaName, tableName, columnName);
+    }
+
+    String getMaxLengthSQL() {
+        return String.format("select MAX(LENGTH(%s)) from %s.%s", columnName, schemaName, tableName);
+    }
+
+    String getAvgLengthSQL() {
+        return String.format("select AVG(LENGTH(%s)) from %s.%s", columnName, schemaName, tableName);
     }
 
     @Override

@@ -44,8 +44,7 @@ class Common {
         File file = new File(sqlPath);
         Long fileLength = file.length();
         byte[] content = new byte[fileLength.intValue()];
-        try {
-            FileInputStream in = new FileInputStream(file);
+        try (FileInputStream in = new FileInputStream(file)) {
             in.read(content);
             return new String(content, StandardCharsets.UTF_8);
         } catch (Exception e) {
