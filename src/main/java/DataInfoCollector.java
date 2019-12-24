@@ -53,7 +53,7 @@ public class DataInfoCollector {
                     dataInfo += getReal(tableSize, tmp);
             }
             result.append(dataInfo+"\n");
-            System.out.println(dataInfo);
+//            System.out.println(dataInfo);
         }
         return result.toString().toUpperCase();
     }

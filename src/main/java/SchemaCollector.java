@@ -16,7 +16,7 @@ public class SchemaCollector {
     public static void main(String arg[]) throws SQLException {
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
         SchemaCollector sc=new SchemaCollector(connection);
-        List<Object> tableNameList=sc.getTableList();
+        List<Object> tableNameList=sc.getTableList("tpch");
         for(Object table:tableNameList){
 //            System.out.print((String)table+":");
 //            String fk_info = sc.getFKNameListString(sc.getForeignKeys("tpch",(String)table));
@@ -44,11 +44,11 @@ public class SchemaCollector {
      * @Param: [conn] 数据库连接
      * @return: java.util.List<java.lang.Object>
      */
-    public List<Object> getTableList() {
+    public List<Object> getTableList(String dbName) {
         List<Object> tableNameList = new ArrayList<Object>();
         String[] types={"TABLE"};
         try {
-            ResultSet rs = databaseMetaData.getTables(null, null, "%",types);
+            ResultSet rs = databaseMetaData.getTables(dbName, null, "%",types);
             while (rs.next()) {
                 tableNameList.add(rs.getString("TABLE_NAME"));
             }

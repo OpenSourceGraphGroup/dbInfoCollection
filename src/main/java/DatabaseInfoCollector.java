@@ -9,15 +9,16 @@ import java.util.List;
  **/
 
 public class DatabaseInfoCollector {
-    static void DatabaseInfoCollect(Connection connection,String dbName){
+    static void DatabaseInfoCollect(Connection connection, String dbName) {
         SchemaCollector sc = new SchemaCollector(connection);
         DataInfoCollector dic = new DataInfoCollector(connection);
 
-        List<Object> tableNameList=sc.getTableList();
-        for(Object table:tableNameList){
-            Common.info(sc.getTableInfo(dbName,(String)table)+"\n");
-            long tableSize = Long.parseLong(sc.getTableSize(dbName, (String)table));
-            Common.info(dic.getDataStatistics(dbName, (String)table, tableSize, sc.getTableColumns(dbName, (String)table))+"\n");
+        List<Object> tableNameList = sc.getTableList(dbName);
+        String outPath = "out/" + System.currentTimeMillis() + ".dbInfo";
+        for (Object table : tableNameList) {
+            Common.writeTo(sc.getTableInfo(dbName, (String) table) + "\n", outPath, Common.WriteType.Append);
+            long tableSize = Long.parseLong(sc.getTableSize(dbName, (String) table));
+            Common.writeTo(dic.getDataStatistics(dbName, (String) table, tableSize, sc.getTableColumns(dbName, (String) table)) + "\n", outPath, Common.WriteType.Append);
         }
     }
 }

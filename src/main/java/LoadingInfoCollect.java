@@ -12,14 +12,16 @@ public class LoadingInfoCollect {
     @Test
     public void test() {
         String dbName = "tpch";
-        Connection connection = Common.connect("59.78.194.63", dbName, "root", "OpenSource");
-        String sqlPath = "sql/" + 16 + ".sql";
-        loadingInfoCollect(connection, sqlPath, dbName);
+        Connection connection = Common.connect("127.0.0.1", dbName, "OpenSource", "OpenSource");
+//        String sqlPath = "sql/" + 16 + ".sql";
+//        loadingInfoCollect(connection, sqlPath, dbName);
 
-//        for (int i = 1; i <= 16; i++) {
-//            sqlPath = "sql/" + i + ".sql";
-//            loadingInfoCollect(connection, sqlPath, dbName);
-//        }
+        for (int i = 1; i <= 16; i++) {
+            String sqlPath = "sql/" + i + ".sql";
+//            String sql = Common.getSql(sqlPath);
+//            Common.query(connection,sql);
+            loadingInfoCollect(connection, sqlPath, dbName);
+        }
     }
 
     static void loadingInfoCollect(Connection connection, String sqlPath, String dbName) {

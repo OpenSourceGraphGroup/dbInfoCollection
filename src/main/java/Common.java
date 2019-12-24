@@ -74,7 +74,7 @@ class Common {
         writeTo(content, filePath, WriteType.Override);
     }
 
-    private static void writeTo(String content, String filePath, WriteType writeType) {
+    static void writeTo(String content, String filePath, WriteType writeType) {
         File f = new File("out/");
         if (!f.exists()) {
             f.mkdirs();
