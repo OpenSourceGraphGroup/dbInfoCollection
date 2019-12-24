@@ -17,9 +17,9 @@ class Common {
         return connect(ip, "3306", db, user, password);
     }
 
-    private static Connection connect(String ip, String port, String db, String user, String password) {
+    static Connection connect(String ip, String port, String db, String user, String password) {
         Connection connection = null;
-        String url = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&serverTimezone=UTC", ip, port, db);
+        String url = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true", ip, port, db);
         try {
             Class.forName(JDBC_DRIVER);
             connection = DriverManager.getConnection(url, user, password);
@@ -59,7 +59,8 @@ class Common {
         SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/log.log", WriteType.Append);
     }
-    static void info(String content){
+
+    static void info(String content) {
         SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/info.log", WriteType.Append);
     }
@@ -75,7 +76,7 @@ class Common {
 
     private static void writeTo(String content, String filePath, WriteType writeType) {
         File f = new File("out/");
-        if(!f.exists()){
+        if (!f.exists()) {
             f.mkdirs();
         }
 

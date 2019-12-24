@@ -7,15 +7,17 @@ import java.sql.Connection;
  */
 public class Main {
     public static void main(String[] args) {
-        String ip = args[0];
-        String dbName = args[1];
-        String user = args[2];
-        String password = args[3];
-        String sqlPath = args[4];
+        int arg = 0;
+        String ip = args[arg++];
+        String port = args[arg++];
+        String dbName = args[arg++];
+        String user = args[arg++];
+        String password = args[arg++];
+        String sqlPath = args[arg++];
 
-        Connection connection = Common.connect(ip, dbName, user, password);
+        Connection connection = Common.connect(ip, port, dbName, user, password);
 //System.out.println("connected");
-        DatabaseInfoCollector.DatabaseInfoCollect(connection,dbName);
+        DatabaseInfoCollector.DatabaseInfoCollect(connection, dbName);
         /* Loading Information Collect */
         LoadingInfoCollect.loadingInfoCollect(connection, sqlPath, dbName);
     }
