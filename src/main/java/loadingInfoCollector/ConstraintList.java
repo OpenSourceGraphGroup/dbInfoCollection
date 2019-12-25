@@ -38,14 +38,6 @@ public class ConstraintList {
     private Map<Integer, Integer> joinCount = new HashMap<>();
     private int index = 0;
 
-    public Connection getConnection() {
-        return connection;
-    }
-
-    public void setConnection(Connection connection) {
-        this.connection = connection;
-    }
-
     private List<String> getTableConstraints() {
         return tableConstraints;
     }

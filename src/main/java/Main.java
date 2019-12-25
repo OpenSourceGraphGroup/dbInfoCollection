@@ -23,7 +23,7 @@ public class Main {
         String user = args[arg++];
         String password = args[arg++];
         String sqlPath = "";
-        if (args.length > arg) sqlPath = args[arg++];
+        if (args.length > arg) sqlPath = args[arg];
         else if (!task.equals("d")) {
             System.out.println("please input sql path");
             return;

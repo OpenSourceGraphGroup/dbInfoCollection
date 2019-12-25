@@ -32,7 +32,7 @@ public class DatabaseInfoCollector {
         DataInfoCollector dic = new DataInfoCollector(connection);
 
         List<Object> tableNameList = sc.getTableList(dbName);
-        String outPath = dbName + "databaseInfo";
+        String outPath = dbName + ".databaseInfo";
         for (Object table : tableNameList) {
             Common.writeTo(sc.getTableInfo(dbName, (String) table) + "\n", outPath, Common.WriteType.Append);
             long tableSize = Long.parseLong(sc.getTableSize(dbName, (String) table));
