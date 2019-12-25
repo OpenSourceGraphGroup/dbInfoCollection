@@ -1,32 +1,22 @@
 package loadingInfoCollector;
 
-import java.util.Map;
-
 /**
  *  @Author: Zhengmin Lai
  *  @Description: Parse Constraint List of Select Node
  */
-public class SelectInfo {
+class SelectInfo {
     private String tableName;
     private String parsedWhereOps;
 
-    public String getTableName() {
+    String getTableName() {
         return tableName;
     }
 
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
-
-    public String getParsedWhereOps() {
+    String getParsedWhereOps() {
         return parsedWhereOps;
     }
 
-    public void setParsedWhereOps(String parsedWhereOps) {
-        this.parsedWhereOps = parsedWhereOps;
-    }
-
-    public void parseSelectNodeWhereOps(String condition) throws Exception {
+    void parseSelectNodeWhereOps(String condition) throws Exception {
         if (condition == null || condition.length() < 1) {
             return;
         }

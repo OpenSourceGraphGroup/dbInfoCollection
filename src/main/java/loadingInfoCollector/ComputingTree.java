@@ -1,26 +1,28 @@
 package loadingInfoCollector;
 
 import common.Common;
-import net.sf.jsqlparser.JSQLParserException;
-import org.junit.Test;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ComputingTree {
+/**
+ * @Author: Ran Wang
+ * @Description: Compute intermediate results using query tree
+ */
+class ComputingTree {
 
     private static void getAllInformation(List<String> leafInfo, List<String> selectInfo, List<String> joinInfo, QueryNode node) {
-        QueryNode leftChild = node.getLeftChild();
-        QueryNode rightChild = node.getRightChild();
+        QueryNode leftChild = node.leftChild;
+        QueryNode rightChild = node.rightChild;
         if (leftChild != null) {
             getAllInformation(leafInfo, selectInfo, joinInfo, leftChild);
         }
-        if (rightChild != null && !(node.getNodeType() == NodeType.JOIN_NODE && !node.getCondition().contains("="))) {
+        if (rightChild != null && !(node.nodeType == NodeType.JOIN_NODE && !node.condition.contains("="))) {
             getAllInformation(leafInfo, selectInfo, joinInfo, rightChild);
         }
-        String info = node.getCondition();
-        if (node.getNodeType() == NodeType.LEAF_NODE) {
+        String info = node.condition;
+        if (node.nodeType == NodeType.LEAF_NODE) {
             int i = leafInfo.indexOf(info);
             if (i >= 0) {
                 String replace_name = info.charAt(0) + String.valueOf(i);
@@ -37,7 +39,7 @@ public class ComputingTree {
                 }
             }
             leafInfo.add(info);
-        } else if (node.getNodeType() == NodeType.SELECT_NODE) {
+        } else if (node.nodeType == NodeType.SELECT_NODE) {
             selectInfo.add(info);
         } else {
             joinInfo.add(info);
@@ -77,41 +79,33 @@ public class ComputingTree {
         if (resultSet.next()) {
             count = resultSet.getInt(1);
         }
-        node.setCount(count);
-        node.setSql(sql);
+        node.count = count;
+        node.sql = sql;
     }
 
-    static void computingSqlUpdateCount(Connection connection, QueryNode root) throws SQLException {
-        QueryNode leftChild = root.getLeftChild();
-        QueryNode rightChild = root.getRightChild();
-        if (leftChild != null) {
-            computingSqlUpdateCount(connection, leftChild);
-        }
-        if (rightChild != null) {
-            computingSqlUpdateCount(connection, rightChild);
-        }
-        String sql = computingNode(root);
-        updateCount(connection, root, sql);
-        Common.log("loadingInfoCollector.ComputingTree:\r\n");
-        printInfo(root);
+    static void computingSqlUpdateCount(Connection connection, QueryNode root) {
+        if (root != null)
+            root.postOrder(queryNode -> {
+                String sql = computingNode(root);
+                try {
+                    updateCount(connection, root, sql);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+                Common.info("loadingInfoCollector.ComputingTree:\r\n");
+                printInfo(root);
+            });
     }
 
     private static void printInfo(QueryNode node) {
-        QueryNode leftChild = node.getLeftChild();
-        QueryNode rightChild = node.getRightChild();
-        if (leftChild != null) {
-            printInfo(leftChild);
-        }
-        if (rightChild != null) {
-            printInfo(rightChild);
-        }
-        NodeType type = node.getNodeType();
-        String sql = node.getSql();
-        String condition = node.getCondition();
-        int count = node.getCount();
-        Common.log("Node " + "#type: " + type + " #sql: " + sql + "\r\n" +
-                "\tNode " + "#condi: " + condition + " #count: " + count + "\r\n");
-
+        node.postOrder(queryNode -> {
+            NodeType type = node.nodeType;
+            String sql = node.sql;
+            String condition = node.condition;
+            int count = node.count;
+            Common.info("Node " + "#type: " + type + " #sql: " + sql + "\r\n" +
+                    "\tNode " + "#condi: " + condition + " #count: " + count + "\r\n");
+        });
     }
 
     private static String combineList(List<String> list, String sep) {
@@ -126,14 +120,4 @@ public class ComputingTree {
         result.append(list.get(i));
         return result.toString();
     }
-
-    @Test
-    public void testComputingTree() throws JSQLParserException, SQLException {
-        Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        QueryNode root = QueryTreeGenerator.generate(connection, Common.getSql("sql/2.sql"), "tpch");
-        if (root != null) {
-            ComputingTree.computingSqlUpdateCount(connection, root);
-        }
-    }
-
 }

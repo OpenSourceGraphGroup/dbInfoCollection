@@ -1,16 +1,31 @@
 package loadingInfoCollector;
 
 import common.Common;
-
 import java.sql.Connection;
 
 
 /**
- * @Author:
- * @Description: 负载信息采集工具
- * @Date: 2019/11/14
+ * @Author: Xin Jin
+ * @Description: collect loading info
  */
 public class LoadingInfoCollect {
+    public static void main(String args[]) {
+        int arg = 0;
+        if (args.length < 6) {
+            System.out.println("please input correct arguments");
+            return;
+        }
+        String ip = args[arg++];
+        String port = args[arg++];
+        String dbName = args[arg++];
+        String user = args[arg++];
+        String password = args[arg++];
+        String sqlPath = args[arg];
+
+        Connection connection = Common.connect(ip, port, dbName, user, password);
+        LoadingInfoCollect.loadingInfoCollect(connection, sqlPath, dbName);
+    }
+
     public static void loadingInfoCollect(Connection connection, String sqlPath, String dbName) {
         /* Get Sql Name */
         String[] sqlNames = sqlPath.split("/");

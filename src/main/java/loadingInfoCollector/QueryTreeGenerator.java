@@ -21,24 +21,9 @@ import java.util.regex.Pattern;
 
 /**
  * @Author: XinJin
- * @Description: 查询树生成器
- * @Date: 2019/11/15
+ * @Description: Given a sql statement, generate its query tree
  */
-public class QueryTreeGenerator {
-    @Test
-    public void testQueryTreeGenerate() throws SQLException, JSQLParserException {
-        for (int i = 1; i < 17; i++) {
-            Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-            QueryNode queryNode = generate(connection, Common.getSql("sql/" + i + ".sql"), "tpch");
-            if (queryNode != null) {
-                queryNode.postOrder(queryNode1 -> System.out.println(queryNode1.nodeType + " " + queryNode1.condition));
-            }
-            connection.close();
-            System.out.println("SQL " + i + " Complete.");
-            System.out.println();
-        }
-    }
-
+class QueryTreeGenerator {
     /**
      * Generate query tree according to sql
      *
@@ -68,12 +53,22 @@ public class QueryTreeGenerator {
         }
         QueryNode result = generate(queryPlan, 1, tableAlias, queryNode, dbName);
         if (result != null) {
-            Common.log("loadingInfoCollector.QueryTreeGenerator:\r\n");
-            result.postOrder(queryNode1 -> Common.log(queryNode1.toString()));
+            Common.info("loadingInfoCollector.QueryTreeGenerator:\r\n");
+            result.postOrder(queryNode1 -> Common.info(queryNode1.toString()));
         }
         return result;
     }
 
+    /**
+     * Generate query tree using query plan
+     *
+     * @param queryPlan
+     * @param start
+     * @param tableAlias
+     * @param queryNode
+     * @param dbName
+     * @return
+     */
     private static QueryNode generate(List<QueryPlan> queryPlan, int start, Map<String, String> tableAlias, QueryNode queryNode, String dbName) {
         for (int index = start; index < queryPlan.size(); index++) {
             QueryPlan plan = queryPlan.get(index);
@@ -129,9 +124,14 @@ public class QueryTreeGenerator {
         return queryNode;
     }
 
+    /**
+     * Process join information between attached subquery and outer query
+     *
+     * @param attachedCondition
+     * @return
+     */
     private static String attachedJoinConditionProcess(String attachedCondition) {
         if (attachedCondition.equals("")) return attachedCondition;
-//        attachedCondition = attachedCondition.replaceAll(" <.+?> ", "").replaceAll("/\\*.*\\*/ ", "");
         Pattern pattern = Pattern.compile("(.*) <.+?> \\((.*)\\)(.*)");
         Matcher matcher = pattern.matcher(attachedCondition);
         if (matcher.find()) {
@@ -146,6 +146,12 @@ public class QueryTreeGenerator {
         return attachedCondition;
     }
 
+    /**
+     * Process select condition
+     *
+     * @param attachedCondition
+     * @return
+     */
     private static String attachedConditionProcess(String attachedCondition) {
         int select2Position = attachedCondition.indexOf("select#2");
         if (select2Position != -1) {
@@ -206,7 +212,6 @@ public class QueryTreeGenerator {
         try {
             if (resultSet.next()) {
                 String planJson = resultSet.getObject(1).toString();
-//        String planJson = Common.getSql("executePlan/" + sqlIndex + ".json").replace("\r\n", "");
                 Map<String, Object> json = new JSONObject(planJson).toMap();
                 List<QueryPlan> results = new ArrayList<>();
                 getPlan(json, results);
@@ -252,6 +257,12 @@ public class QueryTreeGenerator {
         return condition;
     }
 
+    /**
+     * Convert json result into QueryPlan
+     *
+     * @param object
+     * @param plans
+     */
     private static void getPlan(Object object, List<QueryPlan> plans) {
         if (Map.class.isAssignableFrom(object.getClass())) {
             Map map = (Map) object;
@@ -271,6 +282,9 @@ public class QueryTreeGenerator {
         }
     }
 
+    /**
+     * A QueryPlan can be converted into a QueryNode
+     */
     private static class QueryPlan implements Serializable {
         String tableName;
         String key;

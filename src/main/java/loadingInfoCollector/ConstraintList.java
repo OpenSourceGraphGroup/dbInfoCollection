@@ -11,10 +11,10 @@ import java.util.*;
  */
 public class ConstraintList {
     class Pair<A, B> {
-        public A first;
-        public B second;
+        A first;
+        B second;
 
-        public Pair(A first, B second) {
+        Pair(A first, B second) {
             this.first = first;
             this.second = second;
         }
@@ -46,66 +46,38 @@ public class ConstraintList {
         this.connection = connection;
     }
 
-    public Map<String, Integer> getTableMap() {
-        return tableMap;
-    }
-
-    public void setTableMap(Map<String, Integer> tableMap) {
-        this.tableMap = tableMap;
-    }
-
-    public List<String> getTableConstraints() {
+    private List<String> getTableConstraints() {
         return tableConstraints;
     }
 
-    public void setTableConstraints(List<String> tableConstraints) {
-        this.tableConstraints = tableConstraints;
-    }
-
-    public int getIndex() {
-        return index;
-    }
-
-    public void setIndex(int index) {
-        this.index = index;
-    }
-
-    public Map<Integer, Integer> getJoinCount() {
-        return joinCount;
-    }
-
-    public void setJoinCount(Map<Integer, Integer> joinCount) {
-        this.joinCount = joinCount;
-    }
-
-    ConstraintList(Connection connection) {
+    private ConstraintList(Connection connection) {
         this.connection = connection;
     }
 
-    public static void computeConstraintList(Connection connection, QueryNode root, String sqlName) throws Exception {
+    static void computeConstraintList(Connection connection, QueryNode root, String sqlName) throws Exception {
         StringBuilder constraintListString = new StringBuilder();
         ConstraintList constraintList = new ConstraintList(connection);
         constraintList.generateConstraintList(root);
         for (String output : constraintList.getTableConstraints()) {
             constraintListString.append(output).append("\n");
         }
-        Common.writeTo(constraintListString.toString(), "out/" + sqlName + ".constraint");
+        Common.writeTo(constraintListString.toString(), sqlName + ".constraint");
 
         StringBuilder refinedConstrainListString = new StringBuilder();
         constraintList.refineConstraintList();
         for (String output : constraintList.getTableConstraints()) {
             refinedConstrainListString.append(output).append("\n");
         }
-        Common.writeTo(refinedConstrainListString.toString(), "out/" + sqlName + ".refinedConstraint");
+        Common.writeTo(refinedConstrainListString.toString(), sqlName + ".refinedConstraint");
     }
 
-    public void generateConstraintList(QueryNode root) throws Exception {
+    private void generateConstraintList(QueryNode root) throws Exception {
         if (root == null) {
             return;
         }
 
         List<QueryNode> queryNodeList = new ArrayList<>();
-        root.postOrderNodes(queryNodeList);
+        root.postOrder(queryNodeList::add);
 
         for (QueryNode node : queryNodeList) {
             double filterRate = 0;
@@ -150,7 +122,7 @@ public class ConstraintList {
         }
     }
 
-    public void refineConstraintList() {
+    private void refineConstraintList() {
         if (this.tableConstraints.size() == 0) {
             Common.error("Please generate constraint list first!");
         } else {

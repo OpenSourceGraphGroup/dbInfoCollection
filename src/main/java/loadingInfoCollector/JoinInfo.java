@@ -9,15 +9,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-enum KeyType{
+enum KeyType {
     PK, FK, PK_AND_FK, None
 }
 
 /**
- *  @Author: Zhengmin Lai
- *  @Description: Parse Constraint List of Join Node
+ * @Author: Zhengmin Lai
+ * @Description: Parse Constraint List of Join Node
  */
-public class JoinInfo {
+class JoinInfo {
     private Connection connection;
     private String schema;
     private Map<String, List<String>> tableAttributeMap;
@@ -29,27 +29,15 @@ public class JoinInfo {
         return fkReferenceMap;
     }
 
-    public void setFkReferenceMap(Map<String, String> fkReferenceMap) {
-        this.fkReferenceMap = fkReferenceMap;
-    }
-
     Map<String, List<String>> getTableAttributeMap() {
         return tableAttributeMap;
-    }
-
-    public void setTableAttributeMap(Map<String, List<String>> tableAttributeMap) {
-        this.tableAttributeMap = tableAttributeMap;
     }
 
     Map<String, KeyType> getKeyInfoMap() {
         return keyInfoMap;
     }
 
-    public void setKeyInfoMap(Map<String, KeyType> keyInfoMap) {
-        this.keyInfoMap = keyInfoMap;
-    }
-
-    JoinInfo(Connection connection, Map<String, String> tableNickNameMap){
+    JoinInfo(Connection connection, Map<String, String> tableNickNameMap) {
         this.connection = connection;
         this.tableNickNameMap = tableNickNameMap;
         tableAttributeMap = new HashMap<>();
@@ -65,19 +53,10 @@ public class JoinInfo {
         this.connection = connection;
     }
 
-    public String getSchema() {
-        return schema;
-    }
-
-    public void setSchema(String schema) {
-        this.schema = schema;
-    }
-
-
-    void parseJoinInfo(String condition) throws Exception{
-        if(condition != null && condition.contains(" = ")){
+    void parseJoinInfo(String condition) throws Exception {
+        if (condition != null && condition.contains(" = ")) {
             String[] conditions = condition.split(" and ");
-            for(String curCondition: conditions) {
+            for (String curCondition : conditions) {
                 String tableOneInfo = curCondition.split(" = ")[0];
                 String tableTwoInfo = curCondition.split(" = ")[1];
                 parseTable(tableOneInfo);
@@ -85,14 +64,14 @@ public class JoinInfo {
             }
             parseKeyInfo();
             parseFkRefInfo(condition);
-        }else{
+        } else {
             throw new Exception("Parse Join Node Error! Can not find join info in condition '" +
                     condition + "' when joining two tables");
         }
     }
 
     private void parseFkRefInfo(String condition) throws Exception {
-        if(condition != null && condition.contains(" = ")) {
+        if (condition != null && condition.contains(" = ")) {
             String[] conditions = condition.split(" and ");
             for (String curCondition : conditions) {
                 String tableOneInfo = curCondition.split(" = ")[0];
@@ -138,7 +117,7 @@ public class JoinInfo {
         }
     }
 
-    private List<String> parseTableInfo(String info) throws Exception{
+    private List<String> parseTableInfo(String info) throws Exception {
         List<String> tableNameAndAttr = new ArrayList<>();
         int firstIdx = info.indexOf(".");
         int lastIdx = info.lastIndexOf(".");
@@ -153,8 +132,8 @@ public class JoinInfo {
         return tableNameAndAttr;
     }
 
-    private void parseTable(String info) throws Exception{
-        if(info.contains(".")) {
+    private void parseTable(String info) throws Exception {
+        if (info.contains(".")) {
             List<String> tableInfo = parseTableInfo(info);
             String tableName = tableInfo.get(0);
             String joinAttribute = tableInfo.get(1);
@@ -171,11 +150,11 @@ public class JoinInfo {
     }
 
     private void parseKeyInfo() {
-        this.tableAttributeMap.forEach((curTableName, joinAttributes)->{
-            for(String joinAttribute: joinAttributes) {
+        this.tableAttributeMap.forEach((curTableName, joinAttributes) -> {
+            for (String joinAttribute : joinAttributes) {
 
                 String tableName = curTableName;
-                if(tableNickNameMap.containsKey(curTableName)){
+                if (tableNickNameMap.containsKey(curTableName)) {
                     tableName = tableNickNameMap.get(curTableName);
                 }
 
@@ -193,13 +172,13 @@ public class JoinInfo {
                     e.printStackTrace();
                 }
 
-                if(isTableUsingPK && isTableUsingFK){
+                if (isTableUsingPK && isTableUsingFK) {
                     this.keyInfoMap.put(curTableName, KeyType.PK_AND_FK);
-                }else if(isTableUsingPK){
+                } else if (isTableUsingPK) {
                     this.keyInfoMap.put(curTableName, KeyType.PK);
-                }else if(isTableUsingFK){
+                } else if (isTableUsingFK) {
                     this.keyInfoMap.put(curTableName, KeyType.FK);
-                }else{
+                } else {
                     this.keyInfoMap.put(curTableName, KeyType.None);
                 }
             }

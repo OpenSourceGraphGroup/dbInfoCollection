@@ -1,42 +1,27 @@
 package databaseInfoCollector;
 
 import common.Common;
-import org.junit.Test;
 
 import java.sql.*;
 import java.util.List;
 
 /**
- * @program: dbInfoCollection
- * @description: 数据统计信息采集
- * @author: Jiaye Liu
- * @create: 2019-12-03 16:27
+ * @Author: Jiaye Liu
+ * @Description: 数据统计信息采集
  **/
-public class DataInfoCollector {
-    private Statement st = null;
+class DataInfoCollector {
     private Connection connection = null;
-
-    @Test
-    public void test() {
-        Connection conn = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
-        SchemaCollector sc = new SchemaCollector(conn);
-        long tableSize = Long.parseLong(sc.getTableSize("tpch", "lineitem"));
-        DataInfoCollector dic = new DataInfoCollector(conn);
-        String result = dic.getDataStatistics("tpch", "lineitem", tableSize, sc.getTableColumns("tpch", "lineitem"));
-        System.out.print(result);
-    }
-
-    public DataInfoCollector(Connection conn) {
+    DataInfoCollector(Connection conn) {
         try {
             connection = conn;
-            DatabaseMetaData databaseMetaData = (DatabaseMetaData) conn.getMetaData();
-            st = conn.createStatement();
+            conn.getMetaData();
+            conn.createStatement();
         } catch (SQLException e) {
             e.printStackTrace();
         }
     }
 
-    public String getDataStatistics(String schemaName, String tableName, long tableSize, List<Object> columns) {
+    String getDataStatistics(long tableSize, List<Object> columns) {
         StringBuilder result = new StringBuilder();
         for (Object c : columns) {
             Column tmp = (Column) c;
@@ -57,7 +42,7 @@ public class DataInfoCollector {
                 case "DATE":
                     dataInfo += getReal(tableSize, tmp);
             }
-            result.append(dataInfo + "\n");
+            result.append(dataInfo).append("\n");
 //            System.out.println(dataInfo);
         }
         return result.toString().toUpperCase();
@@ -104,7 +89,7 @@ public class DataInfoCollector {
         return String.format("D[%s.%s; %.3f; %.3f]", c.tableName, c.columnName, nullRatio, trueRatio);
     }
 
-    public double getNullRatio(long tableSize, Column c) {
+    private double getNullRatio(long tableSize, Column c) {
         long nullSize = getLongValue(c.getNullSizeSQL());
         return tableSize <= 0 ? 0 : nullSize / (double) tableSize;
     }
