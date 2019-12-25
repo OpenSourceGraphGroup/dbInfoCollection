@@ -1,3 +1,6 @@
+package loadingInfoCollector;
+
+import common.Common;
 
 import java.sql.Connection;
 import java.util.*;

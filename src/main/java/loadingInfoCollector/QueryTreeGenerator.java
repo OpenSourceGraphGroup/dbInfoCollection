@@ -1,3 +1,6 @@
+package loadingInfoCollector;
+
+import common.Common;
 import net.sf.jsqlparser.JSQLParserException;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Table;
@@ -65,7 +68,7 @@ public class QueryTreeGenerator {
         }
         QueryNode result = generate(queryPlan, 1, tableAlias, queryNode, dbName);
         if (result != null) {
-            Common.log("QueryTreeGenerator:\r\n");
+            Common.log("loadingInfoCollector.QueryTreeGenerator:\r\n");
             result.postOrder(queryNode1 -> Common.log(queryNode1.toString()));
         }
         return result;

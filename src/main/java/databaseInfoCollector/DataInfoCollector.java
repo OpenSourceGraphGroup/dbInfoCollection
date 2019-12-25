@@ -1,4 +1,8 @@
-import java.math.BigDecimal;
+package databaseInfoCollector;
+
+import common.Common;
+import org.junit.Test;
+
 import java.sql.*;
 import java.util.List;
 
@@ -12,7 +16,8 @@ public class DataInfoCollector {
     private Statement st = null;
     private Connection connection = null;
 
-    public static void main(String arg[]) {
+    @Test
+    public void test() {
         Connection conn = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
         SchemaCollector sc = new SchemaCollector(conn);
         long tableSize = Long.parseLong(sc.getTableSize("tpch", "lineitem"));
@@ -52,7 +57,7 @@ public class DataInfoCollector {
                 case "DATE":
                     dataInfo += getReal(tableSize, tmp);
             }
-            result.append(dataInfo+"\n");
+            result.append(dataInfo + "\n");
 //            System.out.println(dataInfo);
         }
         return result.toString().toUpperCase();
@@ -99,9 +104,9 @@ public class DataInfoCollector {
         return String.format("D[%s.%s; %.3f; %.3f]", c.tableName, c.columnName, nullRatio, trueRatio);
     }
 
-    public double getNullRatio (long tableSize, Column c) {
+    public double getNullRatio(long tableSize, Column c) {
         long nullSize = getLongValue(c.getNullSizeSQL());
-        return tableSize <= 0 ? 0 : nullSize / (double)tableSize;
+        return tableSize <= 0 ? 0 : nullSize / (double) tableSize;
     }
 
     private String getStringValue(String sql) {

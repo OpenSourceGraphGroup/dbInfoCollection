@@ -1,3 +1,8 @@
+package databaseInfoCollector;
+
+import common.Common;
+import loadingInfoCollector.LoadingInfoCollect;
+
 import java.sql.Connection;
 import java.util.List;
 
@@ -9,7 +14,7 @@ import java.util.List;
  **/
 
 public class DatabaseInfoCollector {
-    static void DatabaseInfoCollect(Connection connection, String dbName) {
+    public static void DatabaseInfoCollect(Connection connection, String dbName) {
         SchemaCollector sc = new SchemaCollector(connection);
         DataInfoCollector dic = new DataInfoCollector(connection);
 

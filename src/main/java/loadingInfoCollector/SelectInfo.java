@@ -1,3 +1,5 @@
+package loadingInfoCollector;
+
 import java.util.Map;
 
 /**

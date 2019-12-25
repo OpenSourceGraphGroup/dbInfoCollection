@@ -1,3 +1,6 @@
+package loadingInfoCollector;
+
+import common.Common;
 import net.sf.jsqlparser.JSQLParserException;
 import org.junit.Test;
 
@@ -6,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ComputingTree {
+
     private static void getAllInformation(List<String> leafInfo, List<String> selectInfo, List<String> joinInfo, QueryNode node) {
         QueryNode leftChild = node.getLeftChild();
         QueryNode rightChild = node.getRightChild();
@@ -88,7 +92,7 @@ public class ComputingTree {
         }
         String sql = computingNode(root);
         updateCount(connection, root, sql);
-        Common.log("ComputingTree:\r\n");
+        Common.log("loadingInfoCollector.ComputingTree:\r\n");
         printInfo(root);
     }
 

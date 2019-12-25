@@ -1,6 +1,7 @@
+package common;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -10,14 +11,14 @@ import java.util.Date;
  * @Description:
  * @Date: 2019/11/14
  */
-class Common {
+public class Common {
     private static final String JDBC_DRIVER = "com.mysql.cj.jdbc.Driver";
 
-    static Connection connect(String ip, String db, String user, String password) {
+    public static Connection connect(String ip, String db, String user, String password) {
         return connect(ip, "3306", db, user, password);
     }
 
-    static Connection connect(String ip, String port, String db, String user, String password) {
+    public static Connection connect(String ip, String port, String db, String user, String password) {
         Connection connection = null;
         String url = String.format("jdbc:mysql://%s:%s/%s?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true", ip, port, db);
         try {
@@ -29,7 +30,7 @@ class Common {
         return connection;
     }
 
-    static ResultSet query(Connection connection, String sql) {
+    public static ResultSet query(Connection connection, String sql) {
         ResultSet resultSet = null;
         try {
             Statement statement = connection.createStatement();
@@ -40,7 +41,7 @@ class Common {
         return resultSet;
     }
 
-    static String getSql(String sqlPath) {
+    public static String getSql(String sqlPath) {
         File file = new File(sqlPath);
         Long fileLength = file.length();
         byte[] content = new byte[fileLength.intValue()];
@@ -53,28 +54,28 @@ class Common {
         }
     }
 
-    enum WriteType {Override, Append}
+    public enum WriteType {Override, Append}
 
-    static void log(String content) {
+    public static void log(String content) {
         SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/log.log", WriteType.Append);
     }
 
-    static void info(String content) {
+    public static void info(String content) {
         SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/info.log", WriteType.Append);
     }
 
-    static void error(String content) {
+    public static void error(String content) {
         SimpleDateFormat df = new SimpleDateFormat("[yyyy-MM-dd HH:mm:ss]");
         writeTo(df.format(new Date()) + "\t" + content, "out/error.log", WriteType.Append);
     }
 
-    static void writeTo(String content, String filePath) {
+    public static void writeTo(String content, String filePath) {
         writeTo(content, filePath, WriteType.Override);
     }
 
-    static void writeTo(String content, String filePath, WriteType writeType) {
+    public static void writeTo(String content, String filePath, WriteType writeType) {
         File f = new File("out/");
         if (!f.exists()) {
             f.mkdirs();
@@ -94,7 +95,7 @@ class Common {
     /**
      * Given the schema, table and attribute, return if the attribute is a foreign key in that table
      */
-    static boolean isFK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
+    public static boolean isFK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
         String sql = String.format("select count(*) from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA='%s' " +
                         "and TABLE_NAME='%s' and CONSTRAINT_NAME != 'PRIMARY' and COLUMN_NAME='%s'", schema,
                 tableName, attribute);
@@ -110,7 +111,7 @@ class Common {
     /**
      * Given the schema, table and attribute, return if the attribute is a primary key in that table
      */
-    static boolean isPK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
+    public static boolean isPK(Connection connection, String schema, String tableName, String attribute) throws SQLException {
         String sql = String.format("select count(*) from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA='%s' " +
                         "and TABLE_NAME='%s' and CONSTRAINT_NAME = 'PRIMARY' and COLUMN_NAME='%s'", schema,
                 tableName, attribute);
@@ -124,7 +125,7 @@ class Common {
     }
 
     @SuppressWarnings("unchecked")
-    static <T> T cast(Object obj) {
+    public static <T> T cast(Object obj) {
         return (T) obj;
     }
 }

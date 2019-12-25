@@ -1,3 +1,8 @@
+package databaseInfoCollector;
+
+import common.Common;
+import org.junit.Test;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +18,8 @@ public class SchemaCollector {
     private DatabaseMetaData databaseMetaData = null;
     private Statement st=null;
 
-    public static void main(String arg[]) throws SQLException {
+    @Test
+    public void test(){
         Connection connection = Common.connect("59.78.194.63", "tpch", "root", "OpenSource");
         SchemaCollector sc=new SchemaCollector(connection);
         List<Object> tableNameList=sc.getTableList("tpch");
